@@ -111,16 +111,16 @@ const swaggerOptions: SwaggerJSDocOptions = {
           type: 'object',
           properties: {
             id: { type: 'string' },
-            orderTime: { 
-              type: 'string', 
-              enum: ['MORNING', 'AFTERNOON', 'EVENING', 'NIGHT'] 
+            orderTime: {
+              type: 'string',
+              enum: ['MORNING', 'AFTERNOON', 'EVENING', 'NIGHT']
             },
             orderDate: { type: 'string', format: 'date-time' },
             customerId: { type: 'string' },
             orderAmount: { type: 'number', format: 'float' },
-            orderStatus: { 
-              type: 'string', 
-              enum: ['PAID', 'UNPAID'] 
+            orderStatus: {
+              type: 'string',
+              enum: ['PAID', 'UNPAID']
             },
             totalItems: { type: 'integer' },
             createdAt: { type: 'string', format: 'date-time' },
@@ -186,7 +186,7 @@ const swaggerOptions: SwaggerJSDocOptions = {
     },
     paths: {
       // Customer Routes
-      '/api/customer/create': {
+      '/api/customer/': {
         post: {
           tags: ['Customer'],
           security: [
@@ -227,8 +227,6 @@ const swaggerOptions: SwaggerJSDocOptions = {
             },
           },
         },
-      },
-      '/api/customer/getAll': {
         get: {
           tags: ['Customer'],
           security: [
@@ -266,7 +264,7 @@ const swaggerOptions: SwaggerJSDocOptions = {
       },
 
       // Product Routes
-      '/api/product/create': {
+      '/api/product/': {
         post: {
           tags: ['Product'],
           security: [
@@ -307,8 +305,7 @@ const swaggerOptions: SwaggerJSDocOptions = {
             },
           },
         },
-      },
-      '/api/product/getAll': {
+
         get: {
           tags: ['Product'],
           security: [
@@ -343,7 +340,7 @@ const swaggerOptions: SwaggerJSDocOptions = {
             },
           },
         },
-      },     
+      },
       '/api/product/{id}': {
         get: {
           tags: ['Product'],
@@ -452,7 +449,7 @@ const swaggerOptions: SwaggerJSDocOptions = {
       },
 
       // Customizations Routes
-      '/api/customizations/create': {
+      '/api/customizations/': {
         post: {
           tags: ['Customizations'],
           security: [
@@ -550,7 +547,7 @@ const swaggerOptions: SwaggerJSDocOptions = {
       },
 
       // Order Routes
-      '/api/order/create': {
+      '/api/order/': {
         post: {
           tags: ['Order'],
           security: [
@@ -591,8 +588,7 @@ const swaggerOptions: SwaggerJSDocOptions = {
             },
           },
         },
-      },
-      '/api/order/getAll': {
+
         get: {
           tags: ['Order'],
           security: [

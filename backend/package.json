@@ -6,7 +6,8 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node dist/index.js",
-    "dev": "nodemon --watch 'src/**/*.ts' --exec ts-node src/index.ts",
+    "watch": "start nodemon --watch src --ext ts --exec ts-node src/index.ts",
+    "dev": "nodemon --watch src --ext ts --exec ts-node src/index.ts",
     "build": "tsc",
     "prisma:generate": "npx prisma generate",
     "prisma:migrate": "npx prisma migrate dev --name init",
@@ -17,7 +18,8 @@
     "prisma:seed": "npx ts-node --esm prisma/seed.ts",
     "prisma:check": "npx prisma validate",
     "prisma:studio:open": "npx prisma studio --browser",
-    "prisma:db:pull": "npx prisma db pull"
+    "prisma:db:pull": "npx prisma db pull",
+    "swagger": "node src/swagger.ts"
   },
   "keywords": [],
   "author": "",
@@ -42,6 +44,7 @@
     "@types/swagger-ui-express": "^4.1.8",
     "nodemon": "^3.1.9",
     "prisma": "^6.5.0",
+    "swagger-autogen": "^2.23.7",
     "ts-node": "^10.9.2",
     "typescript": "^5.8.3"
   }

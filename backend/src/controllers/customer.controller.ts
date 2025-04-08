@@ -1,6 +1,8 @@
 import { Request, Response } from 'express';
 import JsonResponse from '../helpers/json.response';
 import Customer from '../models/customer.model';
+
+
 class CustomerController {
     static async create(req: Request, res: Response) {
         const { name, mobileNumber } = req.body;

@@ -1,4 +1,5 @@
 import prisma from "../config/prisma";
+
 class Customer {
     async create(name: string, mobileNumber: number) {
         const customer = await prisma.getClient().customer.create({

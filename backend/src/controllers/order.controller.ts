@@ -23,7 +23,7 @@ class OrderController {
     // Create a new order with items
     static async createOrder(req: Request, res: Response): Promise<void> {
         try {
-            const { customerId, orderTime, items } = req.body;
+            const { customerId, orderTime, items, orderStatus } = req.body;
 
             // Validate request body
             if (!customerId) {
@@ -94,7 +94,7 @@ class OrderController {
                         orderTime: orderTime,
                         customerId: customerId,
                         orderAmount: totalPrice,
-                        orderStatus: 'UNPAID',
+                        orderStatus: orderStatus,
                         totalItems,
                     },
                 });
@@ -143,9 +143,15 @@ class OrderController {
         return new JsonResponse(req, res).jsonSuccess(data, "Orders fetched successfully");
     }
     static async getAllOfCustomer(req: Request, res: Response) {
+        const {
+            month, paid
+        } = req.query;
         const customerId = req.params.customerId;
+        if (!customerId || !month || !paid) {
+            return new JsonResponse(req, res).jsonError("Missing required parameters", 400);
+        }
         const order = new Order();
-        const data = await order.getAllOfCustomer(customerId);
+        const data = await order.getAllOfCustomer(customerId, Number(month), paid.toString());
         return new JsonResponse(req, res).jsonSuccess(data, "Orders fetched successfully for customer");
     }
 

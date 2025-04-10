@@ -27,33 +27,58 @@ class Order {
         const unpaidAmount = unpaidOrders.reduce((acc, order) => acc + order.orderAmount, 0);
         return { orders, totalAmount, unpaidAmount, paidAmount: totalAmount - unpaidAmount };
     }
-    async getAllOfCustomer(customerId: string) {
+    async getAllOfCustomer(customerId: string, month: number, paid: string) {
         // get all orders with total amount earned for current month
-        const orders = await prisma.getClient().order.findMany({
-            where: {
-                createdAt: {
-                    gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
-                    lte: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0),
+        let orders = []
+        if (paid == "BOTH") {
+            orders = await prisma.getClient().order.findMany({
+                where: {
+                    createdAt: {
+                        gte: new Date(new Date().getFullYear(), month, 1),
+                        lte: new Date(new Date().getFullYear(), month + 1, 0),
+                    },
+                    customerId: customerId,
                 },
-                customerId: customerId
-            },
-            include: {
-                customer: true,
-                Item: {
-                    include: {
-                        product: true,
+                include: {
+                    customer: true,
+                    Item: {
+                        include: {
+                            product: true,
+                        }
                     }
                 }
-            }
-        });
+            });
+        } else {
+            orders = await prisma.getClient().order.findMany({
+                where: {
+                    createdAt: {
+                        gte: new Date(new Date().getFullYear(), month, 1),
+                        lte: new Date(new Date().getFullYear(), month + 1, 0),
+                    },
+                    customerId: customerId,
+                    orderStatus: paid == "PAID" ? "PAID" : "UNPAID"
+                },
+                include: {
+                    customer: true,
+                    Item: {
+                        include: {
+                            product: true,
+                        }
+                    }
+                }
+            });
+        }
 
         // extract the total amount earned for current month
         const totalAmount = orders.reduce((acc, order) => acc + order.orderAmount, 0);
         // extract unpaid amount
-        const unpaidOrders = orders.filter(order => order.orderStatus === 'UNPAID');
-        const unpaidAmount = unpaidOrders.reduce((acc, order) => acc + order.orderAmount, 0);
-        return { orders, totalAmount, unpaidAmount, paidAmount: totalAmount - unpaidAmount };
-
+        if (paid == "BOTH") {
+            const unpaidOrders = orders.filter(order => order.orderStatus === 'UNPAID');
+            const unpaidAmount = unpaidOrders.reduce((acc, order) => acc + order.orderAmount, 0);
+            return { orders, totalAmount, unpaidAmount, paidAmount: totalAmount - unpaidAmount };
+        } else {
+            return { orders, totalAmount, unpaidAmount: -1, paidAmount: -1 };
+        }
     }
 }
 export default Order;

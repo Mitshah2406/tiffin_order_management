@@ -143,9 +143,10 @@ class Order {
     async getAllOfCustomer(customerId: string, year: number, month: number, paid: string) {
         // Get all orders with total amount earned for selected month
         let orders = [];
+        const prismaClient = prisma.getClient();
 
         if (paid === "BOTH") {
-            orders = await prisma.getClient().order.findMany({
+            orders = await prismaClient.order.findMany({
                 where: {
                     customerId: customerId,
                     orderDate: {
@@ -157,7 +158,7 @@ class Order {
                     customer: true,
                     Item: {
                         include: {
-                            product: true,
+                            product: true
                         }
                     }
                 },
@@ -166,7 +167,7 @@ class Order {
                 }
             });
         } else {
-            orders = await prisma.getClient().order.findMany({
+            orders = await prismaClient.order.findMany({
                 where: {
                     customerId: customerId,
                     orderDate: {
@@ -179,7 +180,7 @@ class Order {
                     customer: true,
                     Item: {
                         include: {
-                            product: true,
+                            product: true
                         }
                     }
                 },
@@ -188,6 +189,40 @@ class Order {
                 }
             });
         }
+
+        // Get all customizationIds from the order items
+        const customizationIds = orders.flatMap(order =>
+            order.Item.map(item => item.customizationId)
+        ).filter((id): id is string => id !== null);
+
+        // Fetch all customizations in one query
+        const customizations = await prismaClient.customizations.findMany({
+            where: {
+                id: {
+                    in: customizationIds
+                }
+            }
+        });
+
+        // Create a map for quick lookup
+        const customizationMap = new Map();
+        customizations.forEach(customization => {
+            customizationMap.set(customization.id, customization);
+        });
+
+        // Attach customization data to each order item
+        orders = orders.map(order => {
+            const itemsWithCustomization = order.Item.map(item => {
+                return {
+                    ...item,
+                    customization: customizationMap.get(item.customizationId)
+                };
+            });
+            return {
+                ...order,
+                Item: itemsWithCustomization
+            };
+        });
 
         // Calculate total amount for the month
         const totalAmount = orders.reduce((acc, order) => acc + order.orderAmount, 0);

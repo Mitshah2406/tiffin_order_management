@@ -12,5 +12,7 @@ router.get("/", new TryCatch(productController.getAll).tryCatchGlobe());
 router.get("/:id", new TryCatch(productController.getById).tryCatchGlobe());
 router.delete("/:id", new TryCatch(productController.delete).tryCatchGlobe());
 
+// router.get("/customization", new TryCatch(productController.getProductWithCustomization).tryCatchGlobe());
+
 
 export default router;

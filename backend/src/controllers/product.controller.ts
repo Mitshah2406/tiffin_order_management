@@ -16,6 +16,21 @@ class ProductController {
         }
     }
 
+    // static async getProductWithCustomization(req: Request, res: Response) {
+    //     try {
+    //         console.log("comess");
+
+    //         const product = new Product()
+    //         const data = await product.getProductWithCustomization();
+
+    //         return new JsonResponse(req, res).jsonSuccess(data, "Products fetched successfully with customization");
+    //     } catch (error) {
+    //         console.log(error);
+
+    //         return new JsonResponse(req, res).jsonError("Failed to fetch products with customization", 404);
+    //     }
+    // }
+
     static async editProduct(req: Request, res: Response) {
         try {
             const { id } = req.params;

@@ -3,6 +3,11 @@ export interface OrderItem {
     productId: string;
     quantity: number;
     customizationId: string;
+    customization: {
+        id: string;
+        description: string;
+        price: float;
+    }
     orderId: string;
     product: {
         id: string;

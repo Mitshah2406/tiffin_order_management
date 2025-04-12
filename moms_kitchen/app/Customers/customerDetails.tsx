@@ -336,12 +336,22 @@ const CustomerDetailsScreen = ({ navigation, route }: any) => {
   const renderOrderItems = (items: OrderItem[]) => {
     return items.map((item, index) => (
       <View key={item.id} className="flex-row justify-between py-1">
-        <Text className="text-text-primary">
-          {item.quantity} x {item.product.name}
-        </Text>
-        <Text className="text-text-primary font-medium">
-          ₹ {(item.quantity * 10).toFixed(2)}
-        </Text>
+        <View className="flex-1">
+          <Text className="text-text-primary">
+            {item.quantity} x {item.product?.name || "Unknown Product"}
+          </Text>
+          <Text className="text-text-secondary text-xs">
+            {item.customization?.description || ""}
+          </Text>
+        </View>
+        <View>
+          <Text className="text-text-primary font-medium text-right">
+            ₹{((item.customization?.price || 0) * item.quantity).toFixed(2)}
+          </Text>
+          <Text className="text-text-secondary text-xs text-right">
+            (₹{(item.customization?.price || 0).toFixed(2)} each)
+          </Text>
+        </View>
       </View>
     ));
   };
@@ -388,7 +398,7 @@ const CustomerDetailsScreen = ({ navigation, route }: any) => {
         <View className="flex-row justify-between">
           <Text className="text-text-primary font-medium">Total</Text>
           <Text className="text-primary font-bold text-lg">
-            ₹ {item.orderAmount.toFixed(2)}
+            ₹{item.orderAmount.toFixed(2)}
           </Text>
         </View>
       </View>
@@ -542,13 +552,13 @@ const CustomerDetailsScreen = ({ navigation, route }: any) => {
                 <View className="flex-1 border-r border-light pr-4">
                   <Text className="text-text-secondary">Total Amount</Text>
                   <Text className="text-text-primary font-bold text-xl">
-                    ₹ {totalAmount.toFixed(2)}
+                    ₹{totalAmount.toFixed(2)}
                   </Text>
                 </View>
                 <View className="flex-1 pl-4">
                   <Text className="text-text-secondary">Unpaid Amount</Text>
                   <Text className="text-red-500 font-bold text-xl">
-                    ₹ {unpaidAmount.toFixed(2)}
+                    ₹{unpaidAmount.toFixed(2)}
                   </Text>
                 </View>
               </View>
@@ -634,7 +644,7 @@ const CustomerDetailsScreen = ({ navigation, route }: any) => {
               </Text>
 
               <Text className="text-primary font-bold text-center text-lg mb-4">
-                Total: ₹ {unpaidAmount.toFixed(2)}
+                Total: ₹{unpaidAmount.toFixed(2)}
               </Text>
 
               <View className="flex-row justify-between">

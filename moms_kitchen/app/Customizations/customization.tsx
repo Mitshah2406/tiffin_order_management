@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -10,47 +10,38 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  ToastAndroid,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useNavigation } from "@react-navigation/native";
-import { Customization } from "@/interfaces/interface";
-
-// Sample initial products (for dropdown)
-const productOptions = [
-  { id: "1", name: "Handmade Soap" },
-  { id: "2", name: "Lavender Candle" },
-  { id: "3", name: "Essential Oil Set" },
-];
-
-// Sample initial customizations
-const initialCustomizations = [
-  {
-    id: "1",
-    description: "Lavender Scent with Blue Packaging",
-    price: "25.99",
-    productId: "2",
-    productName: "Lavender Candle",
-  },
-  {
-    id: "2",
-    description: "Charcoal with Mint Scent",
-    price: "12.50",
-    productId: "1",
-    productName: "Handmade Soap",
-  },
-  {
-    id: "3",
-    description: "Three Pack Sampler",
-    price: "35.00",
-    productId: "3",
-    productName: "Essential Oil Set",
-  },
-];
+import { Customization, NodeResponse, Product } from "@/interfaces/interface";
+import useFetch from "@/hooks/useFetch";
+import {
+  createCustomization,
+  deleteCustomization,
+  getAllCustomizations,
+  getAllProducts,
+} from "@/services/api";
+import LoadingButton from "@/components/loadingBtn";
+import { useFocusEffect } from "expo-router";
+import Indicator from "@/components/indicator";
 
 const CustomizationPage = ({ navigation, route }: any) => {
-  const [customizations, setCustomizations] = useState<Customization[]>(
-    initialCustomizations
-  );
+  const {
+    data: apiResponse,
+    error: productError,
+    loading: productLoading,
+    refetch,
+    reset,
+  } = useFetch<NodeResponse>(() => getAllProducts());
+  const {
+    data: customizationResponse,
+    error: customizationError,
+    loading: customizationLoading,
+    refetch: customizationRefetch,
+  } = useFetch<NodeResponse>(() => getAllCustomizations());
+
+  const [customizations, setCustomizations] = useState<Customization[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
   const [description, setDescription] = useState<string>("");
   const [price, setPrice] = useState<string>("");
   const [selectedProduct, setSelectedProduct] = useState<string>("");
@@ -61,47 +52,94 @@ const CustomizationPage = ({ navigation, route }: any) => {
   const [customizationToDelete, setCustomizationToDelete] =
     useState<Customization | null>(null);
 
-  // Handle add new customization
-  const handleAddCustomization = () => {
+  // Loading states
+  const [isAdding, setIsAdding] = useState<boolean>(false);
+  const [isDeleting, setIsDeleting] = useState<boolean>(false);
+
+  useEffect(() => {
     if (
-      description.trim() === "" ||
-      price.trim() === "" ||
-      selectedProduct === ""
-    )
-      return;
+      apiResponse?.success &&
+      apiResponse.data &&
+      Array.isArray(apiResponse.data)
+    ) {
+      setProducts(apiResponse.data);
+    }
 
-    const newCustomization = {
-      id: Date.now().toString(),
-      description: description.trim(),
-      price: price.trim(),
-      productId: selectedProduct,
-      productName:
-        productOptions.find((product) => product.id === selectedProduct)
-          ?.name || "",
-    };
+    if (
+      customizationResponse?.success &&
+      customizationResponse.data &&
+      Array.isArray(customizationResponse.data)
+    ) {
+      setCustomizations(customizationResponse.data);
+    }
+  }, [apiResponse, customizationResponse]);
 
-    setCustomizations([...customizations, newCustomization]);
-    // Clear the form
-    setDescription("");
-    setPrice("");
-    setSelectedProduct("");
-    setSelectedProductName("");
+  // Handle add new customization
+  const handleAddCustomization = async () => {
+    try {
+      setIsAdding(true);
+
+      if (
+        description.trim() === "" ||
+        price.trim() === "" ||
+        selectedProduct === ""
+      ) {
+        ToastAndroid.showWithGravityAndOffset(
+          "Please enter a valid customization for the product",
+          ToastAndroid.LONG,
+          ToastAndroid.BOTTOM,
+          25,
+          50
+        );
+        return;
+      }
+
+      let response: NodeResponse = await createCustomization(
+        description.trim(),
+        parseFloat(price.trim()),
+        selectedProduct
+      );
+
+      if (response.success) {
+        await customizationRefetch();
+
+        ToastAndroid.showWithGravityAndOffset(
+          response.message ||
+            `Customization added successfully for the product ${selectedProductName}`,
+          ToastAndroid.LONG,
+          ToastAndroid.BOTTOM,
+          25,
+          50
+        );
+      } else {
+        ToastAndroid.showWithGravityAndOffset(
+          response.message ||
+            `Failed to add Customization for ${selectedProductName}`,
+          ToastAndroid.LONG,
+          ToastAndroid.BOTTOM,
+          25,
+          50
+        );
+        return;
+      }
+
+      // Clear the form
+      setDescription("");
+      setPrice("");
+      setSelectedProduct("");
+      setSelectedProductName("");
+    } catch (error) {
+      console.log("Here" + error);
+    } finally {
+      setIsAdding(false);
+    }
   };
 
   // Navigate to edit page
   const handleEditCustomization = (customization: Customization) => {
     navigation.navigate("editCustomization", {
       customization,
-      onUpdate: handleUpdateCustomization,
     });
-  };
-
-  // Handle update from edit page
-  const handleUpdateCustomization = (updatedCustomization: Customization) => {
-    const updatedCustomizations = customizations.map((item) =>
-      item.id === updatedCustomization.id ? updatedCustomization : item
-    );
-    setCustomizations(updatedCustomizations);
   };
 
   // Show delete confirmation modal
@@ -111,16 +149,53 @@ const CustomizationPage = ({ navigation, route }: any) => {
   };
 
   // Handle actual deletion
-  const handleDeleteCustomization = () => {
-    if (!customizationToDelete) return;
+  const handleDeleteCustomization = async () => {
+    try {
+      setIsDeleting(true);
 
-    const filteredCustomizations = customizations.filter(
-      (item) => item.id !== customizationToDelete.id
-    );
+      if (!customizationToDelete) {
+        ToastAndroid.showWithGravityAndOffset(
+          "Please select a customization to delete",
+          ToastAndroid.LONG,
+          ToastAndroid.BOTTOM,
+          25,
+          50
+        );
+        return;
+      }
 
-    setCustomizations(filteredCustomizations);
-    setIsDeleteModalVisible(false);
-    setCustomizationToDelete(null);
+      let response: NodeResponse = await deleteCustomization(
+        customizationToDelete.id!
+      );
+
+      if (response.success) {
+        await customizationRefetch();
+
+        ToastAndroid.showWithGravityAndOffset(
+          response.message || `Customization deleted successfully`,
+          ToastAndroid.LONG,
+          ToastAndroid.BOTTOM,
+          25,
+          50
+        );
+      } else {
+        ToastAndroid.showWithGravityAndOffset(
+          response.message || `Failed to delete Customization`,
+          ToastAndroid.LONG,
+          ToastAndroid.BOTTOM,
+          25,
+          50
+        );
+        return;
+      }
+
+      setIsDeleteModalVisible(false);
+      setCustomizationToDelete(null);
+    } catch (error) {
+      console.log("Error deleting customization:", error);
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   // Handle select product from dropdown
@@ -145,11 +220,11 @@ const CustomizationPage = ({ navigation, route }: any) => {
                 />
               </View>
               <Text className="text-text-primary text-lg font-bold flex-1">
-                {item.productName}
+                {item.product?.name}
               </Text>
             </View>
             <Text className="text-text-primary mb-1">{item.description}</Text>
-            <Text className="text-primary font-bold">${item.price}</Text>
+            <Text className="text-primary font-bold">₹ {item.price}</Text>
           </View>
           <View className="flex-row items-start">
             <TouchableOpacity
@@ -170,16 +245,25 @@ const CustomizationPage = ({ navigation, route }: any) => {
     );
   };
 
-  // Determine if main content should be faded
   const isModalOpen = isDeleteModalVisible;
+
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    if (customizationLoading) {
+      setIsLoading(true);
+    } else if (customizations.length > 0) {
+      setIsLoading(false);
+    } else if (!customizationLoading && apiResponse) {
+      setIsLoading(false);
+    }
+  }, [customizationLoading, customizations, customizationResponse]);
 
   return (
     <>
       <StatusBar barStyle="light-content" />
       <SafeAreaView className="flex-1 bg-primary-bg">
-        {/* Main Content */}
         <View className="flex-1" style={{ opacity: isModalOpen ? 0.3 : 1 }}>
-          {/* Header */}
           <View className="bg-primary px-4 py-4 shadow-md">
             <View className="flex-row justify-between items-center">
               <View className="flex-row items-center">
@@ -231,12 +315,12 @@ const CustomizationPage = ({ navigation, route }: any) => {
 
                   {isDropdownOpen && (
                     <View className="bg-white rounded-lg mt-1 shadow-md border border-accent overflow-hidden">
-                      {productOptions.map((product) => (
+                      {products.map((product: Product) => (
                         <TouchableOpacity
                           key={product.id}
                           className="p-3 border-b border-light"
                           onPress={() =>
-                            handleSelectProduct(product.id, product.name)
+                            handleSelectProduct(product.id!, product.name)
                           }
                         >
                           <Text className="text-text-primary">
@@ -274,14 +358,14 @@ const CustomizationPage = ({ navigation, route }: any) => {
                 </View>
 
                 <View className="flex-row justify-end">
-                  <TouchableOpacity
-                    className="bg-primary rounded-lg px-5 py-2"
+                  <LoadingButton
+                    isLoading={isAdding}
                     onPress={handleAddCustomization}
-                  >
-                    <Text className="text-white font-medium">
-                      Add Customization
-                    </Text>
-                  </TouchableOpacity>
+                    defaultText="Add Customization"
+                    loadingText="Adding Customization"
+                    disabled={isAdding}
+                    className="bg-primary rounded-lg px-5 py-2"
+                  />
                 </View>
               </View>
 
@@ -289,11 +373,18 @@ const CustomizationPage = ({ navigation, route }: any) => {
                 Your Customizations
               </Text>
 
-              {customizations.length > 0 ? (
+              {isLoading ? (
+                <View className="bg-white rounded-xl p-6 shadow-md border border-accent items-center justify-center">
+                  <Indicator size="large" />
+                  <Text className="text-text-primary mt-4">
+                    Loading customizations...
+                  </Text>
+                </View>
+              ) : customizations.length > 0 ? (
                 <FlatList
                   data={customizations}
                   renderItem={renderCustomizationItem}
-                  keyExtractor={(item) => item.id}
+                  keyExtractor={(item) => item.id!}
                   showsVerticalScrollIndicator={false}
                   className="mb-20"
                   scrollEnabled={false}
@@ -332,7 +423,7 @@ const CustomizationPage = ({ navigation, route }: any) => {
 
               <Text className="text-text-secondary text-center my-4">
                 Are you sure you want to delete this customization for "
-                {customizationToDelete?.productName}"? This action cannot be
+                {customizationToDelete?.product?.name}"? This action cannot be
                 undone.
               </Text>
 
@@ -345,14 +436,14 @@ const CustomizationPage = ({ navigation, route }: any) => {
                     Cancel
                   </Text>
                 </TouchableOpacity>
-                <TouchableOpacity
-                  className="flex-1 bg-red-500 rounded-lg py-3"
+                <LoadingButton
+                  isLoading={isDeleting}
                   onPress={handleDeleteCustomization}
-                >
-                  <Text className="text-white font-medium text-center">
-                    Delete
-                  </Text>
-                </TouchableOpacity>
+                  defaultText="Delete"
+                  loadingText="Deleting"
+                  disabled={isDeleting}
+                  className="flex-1 bg-red-500 rounded-lg py-3 ml-2"
+                />
               </View>
             </View>
           </View>

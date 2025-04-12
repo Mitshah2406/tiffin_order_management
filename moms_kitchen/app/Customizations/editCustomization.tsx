@@ -9,10 +9,13 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  ToastAndroid,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useNavigation, useRoute } from "@react-navigation/native";
-import { Customization } from "@/interfaces/interface";
+import { Customization, NodeResponse, Product } from "@/interfaces/interface";
+import useFetch from "@/hooks/useFetch";
+import { getAllProducts, updateCustomization } from "@/services/api";
+import LoadingButton from "@/components/loadingBtn";
 
 // Sample products (for dropdown)
 const productOptions = [
@@ -21,51 +24,100 @@ const productOptions = [
   { id: "3", name: "Essential Oil Set" },
 ];
 
-const EditCustomizationPage = () => {
-  const navigation = useNavigation();
-  const route = useRoute();
+const EditCustomizationPage = ({ navigation, route }: any) => {
+  const {
+    data: apiResponse,
+    error: productError,
+    loading: productLoading,
+    refetch,
+    reset,
+  } = useFetch<NodeResponse>(() => getAllProducts());
+
   const { customization, onUpdate } = route.params as {
     customization: Customization;
     onUpdate: (customization: Customization) => void;
   };
 
+  const [products, setProducts] = useState<Product[]>([]);
   const [description, setDescription] = useState<string>("");
   const [price, setPrice] = useState<string>("");
   const [selectedProduct, setSelectedProduct] = useState<string>("");
   const [selectedProductName, setSelectedProductName] = useState<string>("");
   const [isDropdownOpen, setIsDropdownOpen] = useState<boolean>(false);
+  const [isEditing, setIsEditing] = useState<boolean>(false);
 
   // Initialize form with the customization data
   useEffect(() => {
     if (customization) {
       setDescription(customization.description);
-      setPrice(customization.price);
+      setPrice(customization.price.toString());
       setSelectedProduct(customization.productId);
-      setSelectedProductName(customization.productName);
+      setSelectedProductName(customization.product?.name!);
     }
-  }, [customization]);
+
+    if (
+      apiResponse?.success &&
+      apiResponse.data &&
+      Array.isArray(apiResponse.data)
+    ) {
+      setProducts(apiResponse.data);
+    }
+  }, [customization, apiResponse]);
 
   // Handle save changes
-  const handleSaveChanges = () => {
-    if (
-      description.trim() === "" ||
-      price.trim() === "" ||
-      selectedProduct === ""
-    )
-      return;
+  const handleSaveChanges = async () => {
+    try {
+      setIsEditing(true);
 
-    const updatedCustomization = {
-      ...customization,
-      description: description.trim(),
-      price: price.trim(),
-      productId: selectedProduct,
-      productName:
-        productOptions.find((product) => product.id === selectedProduct)
-          ?.name || "",
-    };
+      if (
+        description.trim() === "" ||
+        price.trim() === "" ||
+        selectedProduct === ""
+      ) {
+        ToastAndroid.showWithGravityAndOffset(
+          "Please enter a valid customization for the product",
+          ToastAndroid.LONG,
+          ToastAndroid.BOTTOM,
+          25,
+          50
+        );
+        return;
+      }
 
-    onUpdate(updatedCustomization);
-    navigation.goBack();
+      let response: NodeResponse = await updateCustomization(
+        customization.id!,
+        description.trim(),
+        parseFloat(price.trim()),
+        selectedProduct
+      );
+
+      if (response.success) {
+        ToastAndroid.showWithGravityAndOffset(
+          response.message ||
+            `Customization updated successfully for the product ${selectedProductName}`,
+          ToastAndroid.LONG,
+          ToastAndroid.BOTTOM,
+          25,
+          50
+        );
+      } else {
+        ToastAndroid.showWithGravityAndOffset(
+          response.message ||
+            `Failed to add Customization for ${selectedProductName}`,
+          ToastAndroid.LONG,
+          ToastAndroid.BOTTOM,
+          25,
+          50
+        );
+        return;
+      }
+
+      navigation.navigate("customization");
+    } catch (error) {
+      console.log("Erorr" + error);
+    } finally {
+      setIsEditing(false);
+    }
   };
 
   // Handle select product from dropdown
@@ -123,12 +175,12 @@ const EditCustomizationPage = () => {
 
                 {isDropdownOpen && (
                   <View className="bg-white rounded-lg mt-1 shadow-md border border-accent overflow-hidden">
-                    {productOptions.map((product) => (
+                    {products.map((product: Product) => (
                       <TouchableOpacity
                         key={product.id}
                         className="p-3 border-b border-light"
                         onPress={() =>
-                          handleSelectProduct(product.id, product.name)
+                          handleSelectProduct(product.id!, product.name)
                         }
                       >
                         <Text className="text-text-primary">
@@ -179,14 +231,14 @@ const EditCustomizationPage = () => {
                   Cancel
                 </Text>
               </TouchableOpacity>
-              <TouchableOpacity
-                className="bg-primary rounded-lg py-3 flex-1"
+              <LoadingButton
+                isLoading={isEditing}
+                disabled={isEditing}
                 onPress={handleSaveChanges}
-              >
-                <Text className="text-white font-medium text-center">
-                  Save Changes
-                </Text>
-              </TouchableOpacity>
+                className="bg-primary rounded-lg py-3 flex-1"
+                defaultText="Save Changes"
+                loadingText="Saving Changes"
+              />
             </View>
           </ScrollView>
         </KeyboardAvoidingView>

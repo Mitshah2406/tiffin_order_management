@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -9,20 +9,31 @@ import {
   SafeAreaView,
   KeyboardAvoidingView,
   Platform,
+  ToastAndroid,
+  ScrollView,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useNavigation } from "@react-navigation/native";
-import { Product } from "@/interfaces/interface";
+import { NodeResponse, Product } from "@/interfaces/interface";
+import {
+  createProduct,
+  deleteProduct,
+  editProduct,
+  getAllProducts,
+} from "@/services/api";
+import useFetch from "@/hooks/useFetch";
+import LoadingButton from "@/components/loadingBtn";
+import Indicator from "@/components/indicator";
 
-const initialProducts = [
-  { id: "1", name: "Chapati" },
-  { id: "2", name: "Roti" },
-  { id: "3", name: "Naan" },
-];
+const AddProduct = ({ navigation }: any) => {
+  const {
+    data: apiResponse,
+    error: productError,
+    loading: productLoading,
+    refetch,
+    reset,
+  } = useFetch<NodeResponse>(() => getAllProducts());
 
-const AddProduct = () => {
-  const navigation = useNavigation();
-  const [products, setProducts] = useState<Product[]>(initialProducts);
+  const [products, setProducts] = useState<Product[]>([]);
   const [newProductName, setNewProductName] = useState<string>("");
   const [isDeleteModalVisible, setIsDeleteModalVisible] =
     useState<boolean>(false);
@@ -30,40 +41,68 @@ const AddProduct = () => {
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
   const [productToEdit, setProductToEdit] = useState<Product | null>(null);
   const [editedProductName, setEditedProductName] = useState<string>("");
+  const [adding, setAdding] = useState<boolean>(false);
+  const [editing, setEditing] = useState<boolean>(false);
+  const [deleting, setDeleting] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    if (
+      apiResponse?.success &&
+      apiResponse?.data &&
+      Array.isArray(apiResponse.data)
+    ) {
+      setProducts(apiResponse.data);
+      setIsLoading(false);
+    } else if (apiResponse) {
+      setIsLoading(false);
+    }
+  }, [apiResponse]);
 
   // Handle add new product
-  const handleAddProduct = () => {
-    if (newProductName.trim() === "") return;
+  const handleAddProduct = async () => {
+    try {
+      setAdding(true);
 
-    const newProduct = {
-      id: Date.now().toString(),
-      name: newProductName.trim(),
-    };
+      if (newProductName.trim() === "") {
+        ToastAndroid.showWithGravityAndOffset(
+          "Please enter a valid product name",
+          ToastAndroid.LONG,
+          ToastAndroid.BOTTOM,
+          25,
+          50
+        );
+        return;
+      }
 
-    setProducts([...products, newProduct]);
-    setNewProductName("");
+      let response: NodeResponse = await createProduct(newProductName.trim());
+
+      if (response.success) {
+        // Refetch customers from API instead of manually updating state
+        await refetch();
+
+        ToastAndroid.showWithGravityAndOffset(
+          response.message || "Product added successfully",
+          ToastAndroid.LONG,
+          ToastAndroid.BOTTOM,
+          25,
+          50
+        );
+      }
+
+      setNewProductName("");
+    } catch (error) {
+      console.log("Error adding product:", error);
+    } finally {
+      setAdding(false);
+    }
   };
 
   // Handle edit product
-  const handleEditProduct = (product: Product) => {
+  const handleShowEditProduct = (product: Product) => {
     setProductToEdit(product);
     setEditedProductName(product.name);
     setIsEditModalVisible(true);
-  };
-
-  // Save edited product
-  const handleSaveEdit = () => {
-    if (!productToEdit || editedProductName.trim() === "") return;
-
-    const updatedProducts = products.map((product) =>
-      product.id === productToEdit.id
-        ? { ...product, name: editedProductName.trim() }
-        : product
-    );
-
-    setProducts(updatedProducts);
-    setIsEditModalVisible(false);
-    setProductToEdit(null);
   };
 
   // Show delete confirmation modal
@@ -72,20 +111,79 @@ const AddProduct = () => {
     setIsDeleteModalVisible(true);
   };
 
+  // Save edited product
+  const handleSaveEdit = async () => {
+    try {
+      setEditing(true);
+
+      if (!productToEdit || editedProductName.trim() === "") {
+        ToastAndroid.showWithGravityAndOffset(
+          "Please enter a valid product name",
+          ToastAndroid.LONG,
+          ToastAndroid.BOTTOM,
+          25,
+          50
+        );
+        return;
+      }
+
+      let response: NodeResponse = await editProduct(
+        productToEdit.id!,
+        editedProductName.trim()
+      );
+
+      if (response.success) {
+        // Refetch customers from API instead of manually updating state
+        await refetch();
+
+        ToastAndroid.showWithGravityAndOffset(
+          response.message || "Product updated successfully",
+          ToastAndroid.LONG,
+          ToastAndroid.BOTTOM,
+          25,
+          50
+        );
+      }
+
+      setIsEditModalVisible(false);
+      setProductToEdit(null);
+    } catch (error) {
+      console.log(error);
+    } finally {
+      setEditing(false);
+    }
+  };
+
   // Handle actual deletion
-  const handleDeleteProduct = () => {
-    if (!productToDelete) return;
+  const handleDeleteProduct = async () => {
+    try {
+      setDeleting(true);
 
-    const filteredProducts = products.filter(
-      (product) => product.id !== productToDelete.id
-    );
+      if (!productToDelete) return;
 
-    setProducts(filteredProducts);
+      const response: NodeResponse = await deleteProduct(productToDelete.id!);
+
+      if (response.success) {
+        await refetch();
+
+        ToastAndroid.showWithGravityAndOffset(
+          response.message || "Product deleted successfully",
+          ToastAndroid.LONG,
+          ToastAndroid.BOTTOM,
+          25,
+          50
+        );
+      }
+    } catch (error) {
+      console.log("Error deleting product:", error);
+    } finally {
+      setDeleting(false);
+    }
+
     setIsDeleteModalVisible(false);
     setProductToDelete(null);
   };
 
-  // Render each product item
   const renderProductItem = ({ item }: { item: Product }) => {
     return (
       <View className="bg-white rounded-xl p-4 shadow-md border border-accent mb-3 flex-row justify-between items-center">
@@ -98,7 +196,7 @@ const AddProduct = () => {
         <View className="flex-row">
           <TouchableOpacity
             className="p-2 mr-1"
-            onPress={() => handleEditProduct(item)}
+            onPress={() => handleShowEditProduct(item)}
           >
             <Ionicons name="pencil-outline" size={20} color="#7C84A3" />
           </TouchableOpacity>
@@ -113,16 +211,13 @@ const AddProduct = () => {
     );
   };
 
-  // Determine if main content should be faded
   const isModalOpen = isEditModalVisible || isDeleteModalVisible;
 
   return (
     <>
       <StatusBar barStyle="light-content" />
       <SafeAreaView className="flex-1 bg-primary-bg">
-        {/* Main Content - with opacity based on modal state */}
         <View className="flex-1" style={{ opacity: isModalOpen ? 0.3 : 1 }}>
-          {/* Header */}
           <View className="bg-primary px-4 py-4 shadow-md">
             <View className="flex-row justify-between items-center">
               <View className="flex-row items-center">
@@ -134,6 +229,9 @@ const AddProduct = () => {
                 </TouchableOpacity>
                 <Text className="text-white text-xl font-bold">Products</Text>
               </View>
+              <TouchableOpacity onPress={() => refetch()}>
+                <Ionicons name="refresh" size={24} color="white" />
+              </TouchableOpacity>
             </View>
           </View>
 
@@ -142,6 +240,7 @@ const AddProduct = () => {
             className="flex-1"
           >
             <View className="p-4">
+              {/* Add Product Form - Not Scrollable */}
               <View className="bg-white rounded-xl p-5 shadow-lg border border-accent mb-5">
                 <Text className="text-text-primary font-bold text-lg mb-3">
                   Add New Product
@@ -153,12 +252,14 @@ const AddProduct = () => {
                   onChangeText={setNewProductName}
                 />
                 <View className="flex-row justify-end">
-                  <TouchableOpacity
+                  <LoadingButton
                     className="bg-primary rounded-lg px-5 py-2"
+                    isLoading={adding}
+                    loadingText="Adding Product"
+                    defaultText="Add Product"
                     onPress={handleAddProduct}
-                  >
-                    <Text className="text-white font-medium">Add Product</Text>
-                  </TouchableOpacity>
+                    disabled={adding}
+                  />
                 </View>
               </View>
 
@@ -166,13 +267,24 @@ const AddProduct = () => {
                 Your Products
               </Text>
 
-              {products.length > 0 ? (
+              {isLoading ? (
+                <View className="bg-white rounded-xl p-6 shadow-md border border-accent items-center justify-center">
+                  <Indicator size="large" />
+                  <Text className="text-text-primary text-lg font-bold mt-3">
+                    Loading Products...
+                  </Text>
+                </View>
+              ) : products.length > 0 ? (
                 <FlatList
                   data={products}
                   renderItem={renderProductItem}
-                  keyExtractor={(item) => item.id}
-                  showsVerticalScrollIndicator={false}
-                  className="mb-20"
+                  keyExtractor={(item) => item.id!}
+                  showsVerticalScrollIndicator={true}
+                  scrollEnabled={true}
+                  style={{
+                    maxHeight: 600,
+                  }}
+                  contentContainerStyle={{ paddingBottom: 20 }}
                 />
               ) : (
                 <View className="bg-white rounded-xl p-6 shadow-md border border-accent items-center justify-center">
@@ -189,7 +301,6 @@ const AddProduct = () => {
           </KeyboardAvoidingView>
         </View>
 
-        {/* Edit Modal */}
         {isEditModalVisible && (
           <View className="absolute inset-0 justify-center items-center px-5 z-10">
             <View className="bg-white rounded-xl w-full p-5 shadow-2xl">
@@ -219,20 +330,19 @@ const AddProduct = () => {
                     Cancel
                   </Text>
                 </TouchableOpacity>
-                <TouchableOpacity
+                <LoadingButton
                   className="flex-1 bg-primary rounded-lg py-3"
+                  isLoading={editing}
+                  loadingText="Saving Product"
+                  defaultText="Save"
                   onPress={handleSaveEdit}
-                >
-                  <Text className="text-white font-medium text-center">
-                    Save
-                  </Text>
-                </TouchableOpacity>
+                  disabled={editing}
+                />
               </View>
             </View>
           </View>
         )}
 
-        {/* Delete Modal */}
         {isDeleteModalVisible && (
           <View className="absolute inset-0 justify-center items-center px-5 z-10">
             <View className="bg-white rounded-xl w-full p-5 shadow-xl">
@@ -259,14 +369,14 @@ const AddProduct = () => {
                     Cancel
                   </Text>
                 </TouchableOpacity>
-                <TouchableOpacity
+                <LoadingButton
                   className="flex-1 bg-red-500 rounded-lg py-3"
+                  isLoading={deleting}
+                  loadingText="Deleting Product"
+                  defaultText="Delete"
                   onPress={handleDeleteProduct}
-                >
-                  <Text className="text-white font-medium text-center">
-                    Delete
-                  </Text>
-                </TouchableOpacity>
+                  disabled={deleting}
+                />
               </View>
             </View>
           </View>

@@ -2,7 +2,38 @@ import prisma from "../config/prisma";
 
 class Product {
     async addProduct(name: string) {
+        const productExists = await prisma.getClient().product.findFirst({
+            where: {
+                name: name,
+            }
+        });
+
+        if (productExists) {
+            throw new Error("Product already exists");
+        }
+
         const product = await prisma.getClient().product.create({
+            data: {
+                name: name,
+            },
+        });
+        return product;
+    }
+    async editProduct(id: string, name: string) {
+        const productExists = await prisma.getClient().product.findFirst({
+            where: {
+                id: id,
+            }
+        });
+
+        if (!productExists) {
+            throw new Error("Product does not exist");
+        }
+
+        const product = await prisma.getClient().product.update({
+            where: {
+                id: id,
+            },
             data: {
                 name: name,
             },

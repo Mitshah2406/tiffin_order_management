@@ -9,35 +9,45 @@ import {
   SafeAreaView,
   KeyboardAvoidingView,
   Platform,
+  ToastAndroid,
+  ActivityIndicator,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
-import { Customer } from "@/interfaces/interface";
-
-// Sample initial customers
-const initialCustomers = [
-  { id: "1", name: "John Smith", mobileNumber: "555-123-4567" },
-  { id: "2", name: "Maria Garcia", mobileNumber: "555-987-6543" },
-  { id: "3", name: "Robert Johnson", mobileNumber: "555-456-7890" },
-  { id: "4", name: "Sarah Williams", mobileNumber: "555-234-5678" },
-  { id: "5", name: "David Lee", mobileNumber: "555-876-5432" },
-  { id: "6", name: "Jennifer Brown", mobileNumber: "555-345-6789" },
-  { id: "7", name: "Michael Davis", mobileNumber: "555-765-4321" },
-  { id: "8", name: "Emily Wilson", mobileNumber: "555-543-2109" },
-  { id: "9", name: "James Taylor", mobileNumber: "555-321-0987" },
-  { id: "10", name: "Linda Martinez", mobileNumber: "555-654-3210" },
-];
+import { Customer, NodeResponse } from "@/interfaces/interface";
+import Helper from "@/utils/helpers";
+import { createCustomer, getAllCustomers } from "@/services/api";
+import useFetch from "@/hooks/useFetch";
+import Indicator from "@/components/indicator";
+import LoadingButton from "@/components/loadingBtn";
 
 const CustomerScreen = ({ navigation, route }: any) => {
-  const [customers, setCustomers] = useState<Customer[]>(initialCustomers);
-  const [filteredCustomers, setFilteredCustomers] =
-    useState<Customer[]>(initialCustomers);
-  const [searchQuery, setSearchQuery] = useState<string>("");
+  const {
+    data: apiResponse,
+    loading: customerLoading,
+    error: customerError,
+    refetch,
+  } = useFetch<NodeResponse>(() => getAllCustomers());
+
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [filteredCustomers, setFilteredCustomers] = useState<Customer[]>([]);
   const [isAddModalVisible, setIsAddModalVisible] = useState<boolean>(false);
+  const [searchQuery, setSearchQuery] = useState<string>("");
   const [newCustomerName, setNewCustomerName] = useState<string>("");
   const [newCustomerMobile, setNewCustomerMobile] = useState<string>("");
+  const [isAdding, setAdding] = useState<boolean>(false);
 
-  // Filter customers based on search query
+  useEffect(() => {
+    if (apiResponse && apiResponse.success && apiResponse.data) {
+      const customerData = Array.isArray(apiResponse.data)
+        ? apiResponse.data
+        : apiResponse.data.customers || apiResponse.data;
+
+      setCustomers(customerData);
+      setFilteredCustomers(customerData);
+    }
+  }, [apiResponse]);
+
   useEffect(() => {
     if (searchQuery.trim() === "") {
       setFilteredCustomers(customers);
@@ -49,32 +59,72 @@ const CustomerScreen = ({ navigation, route }: any) => {
     }
   }, [searchQuery, customers]);
 
-  // Handle adding a new customer
-  const handleAddCustomer = () => {
-    if (newCustomerName.trim() === "" || newCustomerMobile.trim() === "")
-      return;
+  const handleAddCustomer = async () => {
+    try {
+      setAdding(true);
 
-    const newCustomer = {
-      id: Date.now().toString(),
-      name: newCustomerName.trim(),
-      mobileNumber: newCustomerMobile.trim(),
-    };
+      if (
+        newCustomerName.trim() === "" ||
+        !Helper.mobileNumberRegex.test(newCustomerMobile.toString())
+      ) {
+        ToastAndroid.showWithGravityAndOffset(
+          "Please enter a valid name and mobile number",
+          ToastAndroid.LONG,
+          ToastAndroid.BOTTOM,
+          25,
+          50
+        );
+        return;
+      }
 
-    setCustomers([...customers, newCustomer]);
+      let response: NodeResponse = await createCustomer(
+        newCustomerName.trim(),
+        newCustomerMobile
+      );
 
-    // Reset form and close modal
-    setNewCustomerName("");
-    setNewCustomerMobile("");
-    setIsAddModalVisible(false);
+      if (response.success) {
+        // Refetch customers from API instead of manually updating state
+        await refetch();
+
+        ToastAndroid.showWithGravityAndOffset(
+          response.message || "Customer added successfully",
+          ToastAndroid.LONG,
+          ToastAndroid.BOTTOM,
+          25,
+          50
+        );
+      } else {
+        ToastAndroid.showWithGravityAndOffset(
+          response.message || "Failed to add customer",
+          ToastAndroid.LONG,
+          ToastAndroid.BOTTOM,
+          25,
+          50
+        );
+        return;
+      }
+
+      setNewCustomerName("");
+      setNewCustomerMobile("");
+      setIsAddModalVisible(false);
+    } catch (error: any) {
+      ToastAndroid.showWithGravityAndOffset(
+        error.message || "An error occurred",
+        ToastAndroid.LONG,
+        ToastAndroid.BOTTOM,
+        25,
+        50
+      );
+      console.log(error.message || "An error occurred");
+    } finally {
+      setAdding(false);
+    }
   };
 
-  // Handle viewing customer details
   const handleViewCustomer = (customer: Customer) => {
-    // In a real app, navigate to the customer details page
     navigation.navigate("customerDetails", { customer });
   };
 
-  // Render each customer item
   const renderCustomerItem = ({ item }: { item: Customer }) => {
     return (
       <View className="bg-white rounded-xl p-4 shadow-md border border-accent mb-3 flex-row justify-between items-center">
@@ -97,16 +147,42 @@ const CustomerScreen = ({ navigation, route }: any) => {
     );
   };
 
-  // Determine if main content should be faded
   const isModalOpen = isAddModalVisible;
+
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    if (customerLoading) {
+      setIsLoading(true);
+    } else if (customers.length > 0) {
+      setIsLoading(false);
+    } else if (!customerLoading && apiResponse) {
+      setIsLoading(false);
+    }
+  }, [customerLoading, customers, apiResponse]);
+
+  if (customerError) {
+    return (
+      <View className="flex-1 items-center justify-center bg-primary-bg">
+        <Ionicons name="alert-circle-outline" size={50} color="#FF6B6B" />
+        <Text className="text-text-primary text-center mt-4">
+          Error: {customerError.message}
+        </Text>
+        <TouchableOpacity
+          className="mt-4 bg-primary rounded-lg px-6 py-2"
+          onPress={() => refetch()}
+        >
+          <Text className="text-white font-medium">Try Again</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   return (
     <>
       <StatusBar barStyle="light-content" />
       <SafeAreaView className="flex-1 bg-primary-bg">
-        {/* Main Content */}
         <View className="flex-1" style={{ opacity: isModalOpen ? 0.3 : 1 }}>
-          {/* Header */}
           <View className="bg-primary px-4 py-4 shadow-md">
             <View className="flex-row justify-between items-center">
               <View className="flex-row items-center">
@@ -118,6 +194,9 @@ const CustomerScreen = ({ navigation, route }: any) => {
                 </TouchableOpacity>
                 <Text className="text-white text-xl font-bold">Customers</Text>
               </View>
+              <TouchableOpacity onPress={() => refetch()}>
+                <Ionicons name="refresh" size={24} color="white" />
+              </TouchableOpacity>
             </View>
           </View>
 
@@ -126,7 +205,6 @@ const CustomerScreen = ({ navigation, route }: any) => {
             className="flex-1"
           >
             <View className="p-4">
-              {/* Search Bar */}
               <View className="bg-white rounded-xl p-2 shadow-md border border-accent mb-5">
                 <View className="flex-row items-center bg-light rounded-lg px-3 py-2">
                   <Ionicons name="search-outline" size={20} color="#7C84A3" />
@@ -148,11 +226,18 @@ const CustomerScreen = ({ navigation, route }: any) => {
                 Your Customers
               </Text>
 
-              {filteredCustomers.length > 0 ? (
+              {isLoading ? (
+                <View className="bg-white rounded-xl p-6 shadow-md border border-accent items-center justify-center">
+                  <Indicator size="large" />
+                  <Text className="text-text-primary mt-4">
+                    Loading customers...
+                  </Text>
+                </View>
+              ) : filteredCustomers.length > 0 ? (
                 <FlatList
                   data={filteredCustomers}
                   renderItem={renderCustomerItem}
-                  keyExtractor={(item) => item.id}
+                  keyExtractor={(item) => item.id!}
                   showsVerticalScrollIndicator={true}
                   className="mb-40"
                   contentContainerStyle={{ paddingBottom: 20 }}
@@ -173,7 +258,6 @@ const CustomerScreen = ({ navigation, route }: any) => {
             </View>
           </KeyboardAvoidingView>
 
-          {/* Floating Add Button */}
           <TouchableOpacity
             className="absolute bottom-6 right-6 w-14 h-14 bg-button-primary rounded-full items-center justify-center shadow-lg"
             onPress={() => setIsAddModalVisible(true)}
@@ -182,7 +266,6 @@ const CustomerScreen = ({ navigation, route }: any) => {
           </TouchableOpacity>
         </View>
 
-        {/* Add Customer Modal */}
         {isAddModalVisible && (
           <View className="absolute inset-0 justify-center items-center px-5 z-10">
             <View className="bg-white rounded-xl w-full p-5 shadow-xl">
@@ -199,7 +282,6 @@ const CustomerScreen = ({ navigation, route }: any) => {
                 </Text>
               </View>
 
-              {/* Name Input */}
               <View className="mb-4">
                 <Text className="text-text-secondary mb-1">Name</Text>
                 <TextInput
@@ -210,7 +292,6 @@ const CustomerScreen = ({ navigation, route }: any) => {
                 />
               </View>
 
-              {/* Mobile Input */}
               <View className="mb-5">
                 <Text className="text-text-secondary mb-1">Mobile Number</Text>
                 <TextInput
@@ -235,14 +316,14 @@ const CustomerScreen = ({ navigation, route }: any) => {
                     Cancel
                   </Text>
                 </TouchableOpacity>
-                <TouchableOpacity
-                  className="flex-1 bg-primary rounded-lg py-3"
+                <LoadingButton
                   onPress={handleAddCustomer}
-                >
-                  <Text className="text-white font-medium text-center">
-                    Add Customer
-                  </Text>
-                </TouchableOpacity>
+                  isLoading={isAdding}
+                  loadingText="Adding Customer"
+                  defaultText="Add Customer"
+                  disabled={isAdding}
+                  className="flex-1 bg-primary rounded-lg py-3 items-center justify-center"
+                />
               </View>
             </View>
           </View>

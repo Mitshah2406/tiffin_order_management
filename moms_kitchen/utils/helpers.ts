@@ -6,6 +6,7 @@ class Helper {
         })}`;
     }
 
+    static mobileNumberRegex = /^[6-9]\d{9}$/;
 }
 
 export default Helper;

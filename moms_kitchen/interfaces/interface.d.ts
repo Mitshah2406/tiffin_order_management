@@ -28,21 +28,26 @@ export interface Order {
 }
 
 export interface Customer {
-    id: string;
+    id?: string;
     name: string;
-    mobileNumber: string;
+    mobileNumber: number;
+    createdAt?: string;
+    updatedAt?: string;
 }
 
 export interface Customization {
-    id: string;
+    id?: string;
     description: string;
     price: string;
     productId: string;
-    productName: string;
+    product?: {
+        id: string;
+        name: string;
+    }
 }
 
 export interface Product {
-    id: string;
+    id?: string;
     name: string;
 }
 
@@ -60,3 +65,8 @@ export interface OrderData {
 
 
 
+export interface NodeResponse {
+    success: boolean;
+    data: any;
+    message: string;
+}

@@ -22,7 +22,6 @@ import {
   getAllCustomizations,
   getAllProducts,
   createOrder,
-  getAllProductsWithCustomizations, // Import the new createOrder function
 } from "@/services/api";
 import LoadingButton from "@/components/loadingBtn"; // Import the LoadingButton component
 
@@ -38,7 +37,7 @@ const AddOrder = ({ navigation }: any) => {
     getAllCustomers()
   );
   const { data: productResponse } = useFetch<NodeResponse>(() =>
-    getAllProductsWithCustomizations()
+    getAllProducts()
   );
   const { data: customizationResponse } = useFetch<NodeResponse>(() =>
     getAllCustomizations()

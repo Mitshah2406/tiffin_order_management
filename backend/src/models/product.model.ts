@@ -50,19 +50,6 @@ class Product {
         );
         return products;
     }
-
-    // async getProductWithCustomization() {
-    //     console.log("bc");
-
-    //     const products = await prisma.getClient().product.findMany(
-    //         {
-    //             include: {
-    //                 Customizations: true,
-    //             }
-    //         }
-    //     );
-    //     return products;
-    // }
     async getById(id: string) {
         const products = await prisma.getClient().product.findUnique(
             {

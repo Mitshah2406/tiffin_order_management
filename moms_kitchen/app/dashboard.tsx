@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -7,9 +7,16 @@ import {
   TouchableOpacity,
   StatusBar,
   FlatList,
+  ActivityIndicator,
+  ToastAndroid,
+  RefreshControl,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import Helper from "@/utils/helpers";
+import {
+  getDashboardStats,
+  getCustomersWithPendingPayments,
+} from "@/services/api";
 
 // Define types for our service items
 interface ServiceItem {
@@ -37,47 +44,102 @@ interface PendingCustomer {
   totalAmount: number;
 }
 
+// Define dashboard stats type
+interface DashboardStats {
+  counts: {
+    products: number;
+    customizations: number;
+    customers: number;
+  };
+  financial: {
+    earnedAmount: number;
+    pendingAmount: number;
+  };
+}
+
 const Dashboard = ({ navigation, route }: any) => {
-  // Sample pending customers data
-  const [pendingCustomers, setPendingCustomers] = useState<PendingCustomer[]>([
-    {
-      id: "1",
-      name: "Atharva Bakri",
-      pendingMonths: [
-        { month: "February", year: 2025, amount: 250 },
-        { month: "March", year: 2025, amount: 350 },
-      ],
-      totalAmount: 600,
+  const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [dashboardStats, setDashboardStats] = useState<DashboardStats>({
+    counts: {
+      products: 0,
+      customizations: 0,
+      customers: 0,
     },
-    {
-      id: "2",
-      name: "Rahul Sharma",
-      pendingMonths: [{ month: "March", year: 2025, amount: 420 }],
-      totalAmount: 420,
+    financial: {
+      earnedAmount: 0,
+      pendingAmount: 0,
     },
-    {
-      id: "3",
-      name: "Priya Patel",
-      pendingMonths: [
-        { month: "January", year: 2025, amount: 180 },
-        { month: "February", year: 2025, amount: 220 },
-        { month: "March", year: 2025, amount: 200 },
-      ],
-      totalAmount: 600,
-    },
-    {
-      id: "4",
-      name: "Amit Verma",
-      pendingMonths: [{ month: "March", year: 2025, amount: 350 }],
-      totalAmount: 350,
-    },
-    {
-      id: "5",
-      name: "Neha Desai",
-      pendingMonths: [{ month: "February", year: 2025, amount: 480 }],
-      totalAmount: 480,
-    },
-  ]);
+  });
+  const [pendingCustomers, setPendingCustomers] = useState<PendingCustomer[]>(
+    []
+  );
+
+  // Load dashboard data on component mount and when returning to the screen
+  useEffect(() => {
+    loadDashboardData();
+
+    // Set up a listener for when the screen comes into focus
+    const unsubscribe = navigation.addListener("focus", () => {
+      loadDashboardData();
+    });
+
+    // Clean up the listener when the component is unmounted
+    return unsubscribe;
+  }, [navigation]);
+
+  // Fetch dashboard data from API
+  const loadDashboardData = async () => {
+    try {
+      setIsLoading(true);
+
+      // Fetch dashboard stats
+      const statsResponse = await getDashboardStats();
+      if (statsResponse.success) {
+        setDashboardStats(statsResponse.data);
+      } else {
+        ToastAndroid.showWithGravityAndOffset(
+          statsResponse.message || "Failed to load dashboard stats",
+          ToastAndroid.LONG,
+          ToastAndroid.BOTTOM,
+          25,
+          50
+        );
+      }
+
+      // Fetch pending customers
+      const pendingResponse = await getCustomersWithPendingPayments();
+      if (pendingResponse.success) {
+        setPendingCustomers(pendingResponse.data || []);
+      } else {
+        ToastAndroid.showWithGravityAndOffset(
+          pendingResponse.message || "Failed to load pending payments",
+          ToastAndroid.LONG,
+          ToastAndroid.BOTTOM,
+          25,
+          50
+        );
+      }
+    } catch (error) {
+      console.error("Error loading dashboard data:", error);
+      ToastAndroid.showWithGravityAndOffset(
+        "Error loading dashboard data",
+        ToastAndroid.LONG,
+        ToastAndroid.BOTTOM,
+        25,
+        50
+      );
+    } finally {
+      setIsLoading(false);
+      setIsRefreshing(false);
+    }
+  };
+
+  // Handle pull-to-refresh
+  const handleRefresh = () => {
+    setIsRefreshing(true);
+    loadDashboardData();
+  };
 
   // Services grid data
   const services: ServiceItem[] = [
@@ -85,7 +147,7 @@ const Dashboard = ({ navigation, route }: any) => {
       id: "1",
       name: "Products",
       icon: "cube-outline",
-      count: "43 items",
+      count: `${dashboardStats.counts.products} items`,
       onTap: () => {
         navigation.navigate("products");
       },
@@ -94,7 +156,7 @@ const Dashboard = ({ navigation, route }: any) => {
       id: "2",
       name: "Customizations",
       icon: "color-palette-outline",
-      count: "12 options",
+      count: `${dashboardStats.counts.customizations} options`,
       onTap: () => {
         navigation.navigate("customization");
       },
@@ -103,7 +165,7 @@ const Dashboard = ({ navigation, route }: any) => {
       id: "3",
       name: "Customers",
       icon: "people-outline",
-      count: "152 active",
+      count: `${dashboardStats.counts.customers} active`,
       onTap: () => {
         navigation.navigate("customers");
       },
@@ -114,7 +176,7 @@ const Dashboard = ({ navigation, route }: any) => {
     if (service1 != null && service2 == null) {
       return (
         <TouchableOpacity
-          key={`${service1.id} || "empty"}`}
+          key={`${service1.id}-single`}
           onPress={service1.onTap}
           className="flex-1 flex-row bg-white rounded-xl p-5 shadow-lg border border-accent mb-4"
         >
@@ -187,12 +249,6 @@ const Dashboard = ({ navigation, route }: any) => {
     return rows;
   };
 
-  // Calculate total pending amount from all customers
-  const totalPendingAmount = pendingCustomers.reduce(
-    (sum, customer) => sum + customer.totalAmount,
-    0
-  );
-
   // Render each pending customer item
   const renderPendingCustomerItem = ({ item }: { item: PendingCustomer }) => {
     return (
@@ -224,6 +280,16 @@ const Dashboard = ({ navigation, route }: any) => {
     );
   };
 
+  if (isLoading) {
+    return (
+      <SafeAreaView className="flex-1 bg-primary-bg justify-center items-center">
+        <StatusBar className="bg-primary" />
+        <ActivityIndicator size="large" color="#1672EC" />
+        <Text className="text-text-primary mt-4">Loading dashboard...</Text>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <>
       <StatusBar className="bg-primary" />
@@ -231,14 +297,24 @@ const Dashboard = ({ navigation, route }: any) => {
         <View className="bg-primary px-4 py-4 shadow-md">
           <View className="flex-row justify-between items-center">
             <Text className="text-white text-2xl font-bold">Hello, mom</Text>
-            <TouchableOpacity className="p-2">
-              <Ionicons name="person-circle-outline" size={40} color="white" />
+            <TouchableOpacity className="p-2" onPress={loadDashboardData}>
+              <Ionicons name="refresh-outline" size={24} color="white" />
             </TouchableOpacity>
           </View>
         </View>
 
         <View className="flex-1">
-          <ScrollView className="flex-1 px-4 py-6" nestedScrollEnabled={false}>
+          <ScrollView
+            className="flex-1 px-4 py-6"
+            nestedScrollEnabled={false}
+            refreshControl={
+              <RefreshControl
+                refreshing={isRefreshing}
+                onRefresh={handleRefresh}
+                colors={["#1672EC"]}
+              />
+            }
+          >
             {renderServiceGrid()}
 
             {/* Summary Grid */}
@@ -251,7 +327,7 @@ const Dashboard = ({ navigation, route }: any) => {
                   Pending Amount
                 </Text>
                 <Text className="text-text-secondary">
-                  {Helper.formatRupees(totalPendingAmount)}
+                  {Helper.formatRupees(dashboardStats.financial.pendingAmount)}
                 </Text>
               </View>
 
@@ -267,25 +343,17 @@ const Dashboard = ({ navigation, route }: any) => {
                   Earned Amount
                 </Text>
                 <Text className="text-text-secondary">
-                  {Helper.formatRupees(1000)}
+                  {Helper.formatRupees(dashboardStats.financial.earnedAmount)}
                 </Text>
               </View>
             </View>
-
-            {/* Pending Payments Section Header */}
           </ScrollView>
+
           <View className="flex-1">
             <View className="flex-row justify-between px-4 py-4 items-center">
               <Text className="text-text-primary font-bold text-lg">
                 Pending Payments
               </Text>
-              {/* <TouchableOpacity
-                onPress={() => navigation.navigate("allPendingPayments")}
-                className="flex-row items-center"
-              >
-                <Text className="text-primary mr-1">View All</Text>
-                <Ionicons name="chevron-forward" size={16} color="#1672EC" />
-              </TouchableOpacity> */}
             </View>
 
             <View className="px-4 mb-4" style={{ height: 400 }}>
@@ -317,7 +385,7 @@ const Dashboard = ({ navigation, route }: any) => {
           onPress={() => navigation.navigate("addOrder")}
           className="absolute bottom-6 right-6 w-14 h-14 bg-button-primary rounded-full items-center justify-center shadow-lg"
         >
-          <Ionicons name="add" size={30} color="white" />
+          <Ionicons name="add" size={40} color="white" />
         </TouchableOpacity>
       </SafeAreaView>
     </>

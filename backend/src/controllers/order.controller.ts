@@ -1,18 +1,3 @@
-// import { Request, Response } from "express";
-// import Order from '../models/order.model';
-// import JsonResponse from "../helpers/json.response";
-
-// class OrderController {
-//     static async createTransaction(req: Request, res: Response) {
-//         const { customerId, timing, products, totalPrice } = req.body;
-
-//         const order = new Order();
-//         const data = await order.createOrder(customerId, timing, products, totalPrice);
-//         return new JsonResponse(req, res).jsonSuccess(data, "Transaction created successfully");
-//     }
-// }
-
-// export default OrderController;
 import { Request, Response } from 'express';
 
 import { Timing } from '@prisma/client';
@@ -23,7 +8,11 @@ class OrderController {
     // Create a new order with items
     static async createOrder(req: Request, res: Response): Promise<void> {
         try {
-            const { customerId, orderTime, items, orderStatus } = req.body;
+            const { customerId, orderTime, items } = req.body;
+
+            console.log("In backend");
+            console.log(req.body);
+
 
             // Validate request body
             if (!customerId) {
@@ -94,7 +83,7 @@ class OrderController {
                         orderTime: orderTime,
                         customerId: customerId,
                         orderAmount: totalPrice,
-                        orderStatus: orderStatus,
+                        orderStatus: "UNPAID",
                         totalItems,
                     },
                 });
@@ -135,8 +124,6 @@ class OrderController {
             res.status(500).json({ message: 'Error creating order', error });
         }
     }
-
-
     static async getAll(req: Request, res: Response) {
         const order = new Order();
         const data = await order.getAll();
@@ -144,17 +131,45 @@ class OrderController {
     }
     static async getAllOfCustomer(req: Request, res: Response) {
         const {
-            month, paid
+            month, year, paid
         } = req.query;
         const customerId = req.params.customerId;
         if (!customerId || !month || !paid) {
             return new JsonResponse(req, res).jsonError("Missing required parameters", 400);
         }
         const order = new Order();
-        const data = await order.getAllOfCustomer(customerId, Number(month), paid.toString());
+        const data = await order.getAllOfCustomer(customerId, Number(year), Number(month), paid.toString());
         return new JsonResponse(req, res).jsonSuccess(data, "Orders fetched successfully for customer");
     }
+    static async markPaid(req: Request, res: Response) {
+        const { id } = req.params;
+        const order = new Order();
+        const data = await order.markAsPaid(id);
 
+        return new JsonResponse(req, res).jsonSuccess(data, "Order marked as paid successfully");
+    }
+    static async markUnpaid(req: Request, res: Response) {
+        const { id } = req.params;
+        const order = new Order();
+        const data = await order.markAsUnpaid(id);
+
+        return new JsonResponse(req, res).jsonSuccess(data, "Order marked as unpaid successfully");
+    }
+    static async markMultiplePaid(req: Request, res: Response) {
+        const { orderIds } = req.body;
+
+        if (!orderIds || !Array.isArray(orderIds) || orderIds.length === 0) {
+            return new JsonResponse(req, res).jsonError("No order IDs provided", 400);
+        }
+
+        const order = new Order();
+        const data = await order.markMultipleAsPaid(orderIds);
+
+        return new JsonResponse(req, res).jsonSuccess(
+            data,
+            `${data.count} orders marked as paid successfully`
+        );
+    }
 }
 
 export default OrderController;

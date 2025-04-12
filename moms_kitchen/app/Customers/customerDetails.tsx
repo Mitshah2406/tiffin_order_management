@@ -6,161 +6,18 @@ import {
   FlatList,
   StatusBar,
   SafeAreaView,
+  ToastAndroid,
+  ActivityIndicator,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Order, OrderItem } from "@/interfaces/interface";
-
-// Sample customer data
-const sampleCustomer = {
-  id: "67f5721677531af399d12422",
-  name: "Atharva Bakri",
-  mobileNumber: "9653288604",
-};
-
-// Sample order data
-const sampleOrders = [
-  {
-    id: "67f5737e77531af399d12429",
-    orderTime: "EVENING",
-    orderDate: "2025-04-08T19:05:34.649Z",
-    customerId: "67f5721677531af399d12422",
-    orderAmount: 20,
-    orderStatus: "PAID",
-    totalItems: 3,
-    createdAt: "2025-04-08T19:05:34.649Z",
-    customer: {
-      id: "67f5721677531af399d12422",
-      name: "Atharva bakri",
-      mobileNumber: 9653288604,
-      createdAt: "2025-04-08T18:59:34.282Z",
-      updatedAt: "2025-04-08T18:59:34.282Z",
-    },
-    Item: [
-      {
-        id: "67f5737e77531af399d1242a",
-        productId: "67f5722777531af399d12423",
-        quantity: 2,
-        customizationId: "67f5726c77531af399d12425",
-        orderId: "67f5737e77531af399d12429",
-        createdAt: "2025-04-08T19:05:34.708Z",
-        updatedAt: "2025-04-08T19:05:34.708Z",
-        product: {
-          id: "67f5722777531af399d12423",
-          name: "Chapati",
-        },
-      },
-      {
-        id: "67f5737e77531af399d1242b",
-        productId: "67f5722777531af399d12423",
-        quantity: 1,
-        customizationId: "67f5735777531af399d12428",
-        orderId: "67f5737e77531af399d12429",
-        createdAt: "2025-04-08T19:05:34.766Z",
-        updatedAt: "2025-04-08T19:05:34.766Z",
-        product: {
-          id: "67f5722777531af399d12423",
-          name: "Chapati",
-        },
-      },
-    ],
-  },
-  {
-    id: "67f573cf77531af399d1242c",
-    orderTime: "MORNING",
-    orderDate: "2025-04-08T10:15:34.649Z",
-    customerId: "67f5721677531af399d12422",
-    orderAmount: 35,
-    orderStatus: "UNPAID",
-    totalItems: 2,
-    createdAt: "2025-04-08T10:15:34.649Z",
-    customer: {
-      id: "67f5721677531af399d12422",
-      name: "Atharva bakri",
-      mobileNumber: 9653288604,
-      createdAt: "2025-04-08T18:59:34.282Z",
-      updatedAt: "2025-04-08T18:59:34.282Z",
-    },
-    Item: [
-      {
-        id: "67f573cf77531af399d1242d",
-        productId: "67f5722777531af399d12424",
-        quantity: 1,
-        customizationId: "67f5726c77531af399d12426",
-        orderId: "67f573cf77531af399d1242c",
-        createdAt: "2025-04-08T10:15:34.708Z",
-        updatedAt: "2025-04-08T10:15:34.708Z",
-        product: {
-          id: "67f5722777531af399d12424",
-          name: "Naan",
-        },
-      },
-    ],
-  },
-  {
-    id: "67f574cf77531af399d1242e",
-    orderTime: "AFTERNOON",
-    orderDate: "2025-03-15T14:30:34.649Z",
-    customerId: "67f5721677531af399d12422",
-    orderAmount: 45,
-    orderStatus: "PAID",
-    totalItems: 4,
-    createdAt: "2025-03-15T14:30:34.649Z",
-    customer: {
-      id: "67f5721677531af399d12422",
-      name: "Atharva bakri",
-      mobileNumber: 9653288604,
-      createdAt: "2025-04-08T18:59:34.282Z",
-      updatedAt: "2025-04-08T18:59:34.282Z",
-    },
-    Item: [
-      {
-        id: "67f574cf77531af399d1242f",
-        productId: "67f5722777531af399d12423",
-        quantity: 4,
-        customizationId: "67f5726c77531af399d12425",
-        orderId: "67f574cf77531af399d1242e",
-        createdAt: "2025-03-15T14:30:34.708Z",
-        updatedAt: "2025-03-15T14:30:34.708Z",
-        product: {
-          id: "67f5722777531af399d12423",
-          name: "Chapati",
-        },
-      },
-    ],
-  },
-  {
-    id: "67f575cf77531af399d12430",
-    orderTime: "EVENING",
-    orderDate: "2025-02-22T18:45:34.649Z",
-    customerId: "67f5721677531af399d12422",
-    orderAmount: 30,
-    orderStatus: "UNPAID",
-    totalItems: 2,
-    createdAt: "2025-02-22T18:45:34.649Z",
-    customer: {
-      id: "67f5721677531af399d12422",
-      name: "Atharva bakri",
-      mobileNumber: 9653288604,
-      createdAt: "2025-04-08T18:59:34.282Z",
-      updatedAt: "2025-04-08T18:59:34.282Z",
-    },
-    Item: [
-      {
-        id: "67f575cf77531af399d12431",
-        productId: "67f5722777531af399d12424",
-        quantity: 2,
-        customizationId: "67f5726c77531af399d12426",
-        orderId: "67f575cf77531af399d12430",
-        createdAt: "2025-02-22T18:45:34.708Z",
-        updatedAt: "2025-02-22T18:45:34.708Z",
-        product: {
-          id: "67f5722777531af399d12424",
-          name: "Naan",
-        },
-      },
-    ],
-  },
-];
+import {
+  getCustomerOrders,
+  markOrderAsPaid,
+  markOrderAsUnpaid,
+  markMultipleOrdersAsPaid,
+} from "@/services/api";
+import LoadingButton from "@/components/loadingBtn";
 
 // Custom Dropdown Component
 const Dropdown = ({
@@ -225,13 +82,12 @@ const Dropdown = ({
 };
 
 const CustomerDetailsScreen = ({ navigation, route }: any) => {
-  // In a real app, you would get the customer from route params
-  // const { customer } = route.params as { customer: Customer };
-  const customer = sampleCustomer;
+  // Get customer from route params
+  const { customer } = route.params;
 
-  const [orders, setOrders] = useState<Order[]>(sampleOrders);
+  const [orders, setOrders] = useState<Order[]>([]);
   const [filteredOrders, setFilteredOrders] = useState<Order[]>([]);
-  const [orderFilter, setOrderFilter] = useState<string>("ALL");
+  const [orderFilter, setOrderFilter] = useState<string>("BOTH");
   const [selectedMonth, setSelectedMonth] = useState<number>(
     new Date().getMonth()
   );
@@ -242,10 +98,11 @@ const CustomerDetailsScreen = ({ navigation, route }: any) => {
     useState<boolean>(false);
   const [isMarkPaidModalVisible, setIsMarkPaidModalVisible] =
     useState<boolean>(false);
-  const [totalUnpaidAmount, setTotalUnpaidAmount] = useState<number>(0);
+  const [totalAmount, setTotalAmount] = useState<number>(0);
+  const [unpaidAmount, setUnpaidAmount] = useState<number>(0);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isMarkingPaid, setIsMarkingPaid] = useState<boolean>(false);
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
-  const [isFilterDropdownOpen, setIsFilterDropdownOpen] =
-    useState<boolean>(false);
 
   // Month names for display
   const monthNames = [
@@ -267,7 +124,7 @@ const CustomerDetailsScreen = ({ navigation, route }: any) => {
 
   // Filter options for the dropdown
   const filterOptions = [
-    { label: "All Orders", value: "ALL" },
+    { label: "All Orders", value: "BOTH" },
     { label: "Paid Orders", value: "PAID" },
     { label: "Unpaid Orders", value: "UNPAID" },
   ];
@@ -277,47 +134,64 @@ const CustomerDetailsScreen = ({ navigation, route }: any) => {
     setIsModalOpen(isDatePickerVisible || isMarkPaidModalVisible);
   }, [isDatePickerVisible, isMarkPaidModalVisible]);
 
-  // Filter orders based on selected month, year and payment status
+  // Fetch customer orders when component mounts or filters change
   useEffect(() => {
+    fetchCustomerOrders();
+  }, [customer.id, selectedMonth, selectedYear, orderFilter]);
+
+  const fetchCustomerOrders = async () => {
+    if (!customer || !customer.id) return;
+
     try {
-      // Filter by selected month and year
-      const monthYearFiltered = orders.filter((order) => {
-        const orderDate = new Date(order.orderDate);
-        return (
-          orderDate.getMonth() === selectedMonth &&
-          orderDate.getFullYear() === selectedYear
-        );
-      });
+      setIsLoading(true);
 
-      // Further filter by payment status if needed
-      let statusFiltered = monthYearFiltered;
-      if (orderFilter === "PAID") {
-        statusFiltered = monthYearFiltered.filter(
-          (order) => order.orderStatus === "PAID"
+      const response = await getCustomerOrders(
+        customer.id,
+        selectedYear,
+        selectedMonth,
+        orderFilter
+      );
+
+      if (response.success) {
+        // Set orders and financial data
+        setOrders(response.data.orders || []);
+        setFilteredOrders(response.data.orders || []);
+        setTotalAmount(response.data.totalAmount || 0);
+        setUnpaidAmount(
+          response.data.unpaidAmount >= 0 ? response.data.unpaidAmount : 0
         );
-      } else if (orderFilter === "UNPAID") {
-        statusFiltered = monthYearFiltered.filter(
-          (order) => order.orderStatus === "UNPAID"
+      } else {
+        ToastAndroid.showWithGravityAndOffset(
+          response.message || "Failed to fetch orders",
+          ToastAndroid.LONG,
+          ToastAndroid.BOTTOM,
+          25,
+          50
         );
+        // Set empty data if there's an error
+        setOrders([]);
+        setFilteredOrders([]);
+        setTotalAmount(0);
+        setUnpaidAmount(0);
       }
-
-      setFilteredOrders(statusFiltered);
-
-      // Calculate total unpaid amount for selected month
-      const unpaidOrders = monthYearFiltered.filter(
-        (order) => order.orderStatus === "UNPAID"
-      );
-      const totalUnpaid = unpaidOrders.reduce(
-        (sum, order) => sum + order.orderAmount,
-        0
-      );
-      setTotalUnpaidAmount(totalUnpaid);
     } catch (error) {
-      console.error("Error filtering orders:", error);
-      // Fallback to showing all orders
-      setFilteredOrders(orders);
+      console.error("Error fetching customer orders:", error);
+      ToastAndroid.showWithGravityAndOffset(
+        "Error loading customer orders",
+        ToastAndroid.LONG,
+        ToastAndroid.BOTTOM,
+        25,
+        50
+      );
+      // Set empty data if there's an error
+      setOrders([]);
+      setFilteredOrders([]);
+      setTotalAmount(0);
+      setUnpaidAmount(0);
+    } finally {
+      setIsLoading(false);
     }
-  }, [orders, orderFilter, selectedMonth, selectedYear]);
+  };
 
   // Format date for display
   const formatDate = (dateString: string) => {
@@ -333,8 +207,8 @@ const CustomerDetailsScreen = ({ navigation, route }: any) => {
     switch (timeString) {
       case "MORNING":
         return "Morning";
-      //   case "AFTERNOON":
-      //     return "Afternoon";
+      case "AFTERNOON":
+        return "Afternoon";
       case "EVENING":
         return "Evening";
       default:
@@ -343,37 +217,119 @@ const CustomerDetailsScreen = ({ navigation, route }: any) => {
   };
 
   // Handle marking all unpaid orders as paid
-  const handleMarkAllAsPaid = () => {
-    const updatedOrders = orders.map((order) => {
-      // Only update orders from selected month/year
-      const orderDate = new Date(order.orderDate);
-      if (
-        orderDate.getMonth() === selectedMonth &&
-        orderDate.getFullYear() === selectedYear &&
-        order.orderStatus === "UNPAID"
-      ) {
-        return { ...order, orderStatus: "PAID" };
-      }
-      return order;
-    });
+  const handleMarkAllAsPaid = async () => {
+    try {
+      setIsMarkingPaid(true);
 
-    setOrders(updatedOrders);
-    setIsMarkPaidModalVisible(false);
+      // Get IDs of all unpaid orders
+      const unpaidOrderIds = orders
+        .filter((order) => order.orderStatus === "UNPAID")
+        .map((order) => order.id);
+
+      if (unpaidOrderIds.length === 0) {
+        ToastAndroid.showWithGravityAndOffset(
+          "No unpaid orders to mark as paid",
+          ToastAndroid.LONG,
+          ToastAndroid.BOTTOM,
+          25,
+          50
+        );
+        setIsMarkPaidModalVisible(false);
+        setIsMarkingPaid(false);
+        return;
+      }
+
+      // Call API to mark multiple orders as paid
+      const response = await markMultipleOrdersAsPaid(unpaidOrderIds);
+
+      if (response.success) {
+        ToastAndroid.showWithGravityAndOffset(
+          response.message || "All orders marked as paid successfully",
+          ToastAndroid.LONG,
+          ToastAndroid.BOTTOM,
+          25,
+          50
+        );
+
+        // Refresh the order list
+        await fetchCustomerOrders();
+      } else {
+        ToastAndroid.showWithGravityAndOffset(
+          response.message || "Failed to mark orders as paid",
+          ToastAndroid.LONG,
+          ToastAndroid.BOTTOM,
+          25,
+          50
+        );
+      }
+    } catch (error) {
+      console.error("Error marking all orders as paid:", error);
+      ToastAndroid.showWithGravityAndOffset(
+        "Error marking orders as paid",
+        ToastAndroid.LONG,
+        ToastAndroid.BOTTOM,
+        25,
+        50
+      );
+    } finally {
+      setIsMarkingPaid(false);
+      setIsMarkPaidModalVisible(false);
+    }
   };
 
   // Handle toggling individual order payment status
-  const handleToggleOrderStatus = (orderId: string) => {
-    const updatedOrders = orders.map((order) => {
-      if (order.id === orderId) {
-        return {
-          ...order,
-          orderStatus: order.orderStatus === "PAID" ? "UNPAID" : "PAID",
-        };
-      }
-      return order;
-    });
+  const handleToggleOrderStatus = async (
+    orderId: string,
+    currentStatus: string
+  ) => {
+    try {
+      let response;
 
-    setOrders(updatedOrders);
+      if (currentStatus === "PAID") {
+        // Mark as unpaid
+        response = await markOrderAsUnpaid(orderId);
+      } else {
+        // Mark as paid
+        response = await markOrderAsPaid(orderId);
+      }
+
+      if (response.success) {
+        ToastAndroid.showWithGravityAndOffset(
+          response.message ||
+            `Order marked as ${currentStatus === "PAID" ? "unpaid" : "paid"}`,
+          ToastAndroid.SHORT,
+          ToastAndroid.BOTTOM,
+          25,
+          50
+        );
+
+        // Refresh the order list
+        await fetchCustomerOrders();
+      } else {
+        ToastAndroid.showWithGravityAndOffset(
+          response.message || "Failed to update order status",
+          ToastAndroid.LONG,
+          ToastAndroid.BOTTOM,
+          25,
+          50
+        );
+      }
+    } catch (error) {
+      console.error("Error toggling order status:", error);
+      ToastAndroid.showWithGravityAndOffset(
+        "Error updating order status",
+        ToastAndroid.LONG,
+        ToastAndroid.BOTTOM,
+        25,
+        50
+      );
+    }
+  };
+
+  // Apply date filter
+  const handleApplyDateFilter = () => {
+    setIsDatePickerVisible(false);
+    // The orders will be fetched automatically due to the useEffect dependency
   };
 
   // Render order items
@@ -384,7 +340,7 @@ const CustomerDetailsScreen = ({ navigation, route }: any) => {
           {item.quantity} x {item.product.name}
         </Text>
         <Text className="text-text-primary font-medium">
-          ${(item.quantity * 10).toFixed(2)}
+          ₹ {(item.quantity * 10).toFixed(2)}
         </Text>
       </View>
     ));
@@ -404,7 +360,9 @@ const CustomerDetailsScreen = ({ navigation, route }: any) => {
             </Text>
           </View>
 
-          <Pressable onPress={() => handleToggleOrderStatus(item.id)}>
+          <Pressable
+            onPress={() => handleToggleOrderStatus(item.id, item.orderStatus)}
+          >
             <View
               className={`px-3 py-1 rounded-full ${
                 item.orderStatus === "PAID" ? "bg-green-100" : "bg-red-100"
@@ -430,7 +388,7 @@ const CustomerDetailsScreen = ({ navigation, route }: any) => {
         <View className="flex-row justify-between">
           <Text className="text-text-primary font-medium">Total</Text>
           <Text className="text-primary font-bold text-lg">
-            ${item.orderAmount.toFixed(2)}
+            ₹ {item.orderAmount.toFixed(2)}
           </Text>
         </View>
       </View>
@@ -500,7 +458,7 @@ const CustomerDetailsScreen = ({ navigation, route }: any) => {
           </Pressable>
           <Pressable
             className="flex-1 bg-primary rounded-lg py-3"
-            onPress={() => setIsDatePickerVisible(false)}
+            onPress={handleApplyDateFilter}
           >
             <Text className="text-white font-medium text-center">Apply</Text>
           </Pressable>
@@ -508,12 +466,6 @@ const CustomerDetailsScreen = ({ navigation, route }: any) => {
       </View>
     );
   };
-
-  // Calculate total amount for the month
-  const totalMonthAmount = filteredOrders.reduce(
-    (sum, order) => sum + order.orderAmount,
-    0
-  );
 
   return (
     <>
@@ -525,19 +477,16 @@ const CustomerDetailsScreen = ({ navigation, route }: any) => {
           <View className="bg-primary px-4 py-4 shadow-md">
             <View className="flex-row justify-between items-center">
               <View className="flex-row items-center">
-                <Pressable
-                  className="mr-3"
-                  onPress={() => {
-                    navigation.goBack();
-                    console.log("Go back");
-                  }}
-                >
+                <Pressable className="mr-3" onPress={() => navigation.goBack()}>
                   <Ionicons name="arrow-back" size={24} color="white" />
                 </Pressable>
                 <Text className="text-white text-xl font-bold">
                   Customer Details
                 </Text>
               </View>
+              <Pressable onPress={() => fetchCustomerOrders()}>
+                <Ionicons name="refresh" size={24} color="white" />
+              </Pressable>
             </View>
           </View>
 
@@ -577,7 +526,7 @@ const CustomerDetailsScreen = ({ navigation, route }: any) => {
                   <Ionicons name="calendar-outline" size={18} color="#1672EC" />
                 </Pressable>
 
-                {totalUnpaidAmount > 0 && (
+                {unpaidAmount > 0 && (
                   <Pressable
                     className="bg-primary rounded-lg px-3 py-1"
                     onPress={() => setIsMarkPaidModalVisible(true)}
@@ -593,13 +542,13 @@ const CustomerDetailsScreen = ({ navigation, route }: any) => {
                 <View className="flex-1 border-r border-light pr-4">
                   <Text className="text-text-secondary">Total Amount</Text>
                   <Text className="text-text-primary font-bold text-xl">
-                    ${totalMonthAmount.toFixed(2)}
+                    ₹ {totalAmount.toFixed(2)}
                   </Text>
                 </View>
                 <View className="flex-1 pl-4">
                   <Text className="text-text-secondary">Unpaid Amount</Text>
                   <Text className="text-red-500 font-bold text-xl">
-                    ${totalUnpaidAmount.toFixed(2)}
+                    ₹ {unpaidAmount.toFixed(2)}
                   </Text>
                 </View>
               </View>
@@ -624,7 +573,12 @@ const CustomerDetailsScreen = ({ navigation, route }: any) => {
           </View>
 
           {/* Orders List */}
-          {filteredOrders.length > 0 ? (
+          {isLoading ? (
+            <View className="flex-1 justify-center items-center">
+              <ActivityIndicator size="large" color="#1672EC" />
+              <Text className="text-text-primary mt-2">Loading orders...</Text>
+            </View>
+          ) : filteredOrders.length > 0 ? (
             <FlatList
               data={filteredOrders}
               renderItem={renderOrderItem}
@@ -643,7 +597,7 @@ const CustomerDetailsScreen = ({ navigation, route }: any) => {
                   No Orders Found
                 </Text>
                 <Text className="text-text-secondary text-center mt-1">
-                  {orderFilter !== "ALL"
+                  {orderFilter !== "BOTH"
                     ? `No ${orderFilter.toLowerCase()} orders for ${
                         monthNames[selectedMonth]
                       } ${selectedYear}`
@@ -680,26 +634,27 @@ const CustomerDetailsScreen = ({ navigation, route }: any) => {
               </Text>
 
               <Text className="text-primary font-bold text-center text-lg mb-4">
-                Total: ${totalUnpaidAmount.toFixed(2)}
+                Total: ₹ {unpaidAmount.toFixed(2)}
               </Text>
 
               <View className="flex-row justify-between">
                 <Pressable
                   className="flex-1 bg-light rounded-lg py-3 mr-2"
                   onPress={() => setIsMarkPaidModalVisible(false)}
+                  disabled={isMarkingPaid}
                 >
                   <Text className="text-text-secondary font-medium text-center">
                     Cancel
                   </Text>
                 </Pressable>
-                <Pressable
+                <LoadingButton
                   className="flex-1 bg-green-500 rounded-lg py-3"
+                  isLoading={isMarkingPaid}
+                  loadingText="Processing..."
+                  defaultText="Mark as Paid"
                   onPress={handleMarkAllAsPaid}
-                >
-                  <Text className="text-white font-medium text-center">
-                    Mark as Paid
-                  </Text>
-                </Pressable>
+                  disabled={isMarkingPaid}
+                />
               </View>
             </View>
           </View>

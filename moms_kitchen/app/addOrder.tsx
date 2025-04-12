@@ -7,60 +7,23 @@ import {
   ScrollView,
   StatusBar,
   SafeAreaView,
+  ToastAndroid,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-
-// Sample data for customers
-const sampleCustomers = [
-  { id: "67f3bc7df632155056b8424c", name: "Atharva Bakri" },
-  { id: "67f3bc7df632155056b8424d", name: "Rahul Sharma" },
-  { id: "67f3bc7df632155056b8424e", name: "Priya Patel" },
-  { id: "67f3bc7df632155056b8424f", name: "Amit Verma" },
-  { id: "67f3bc7df632155056b84250", name: "Sneha Gupta" },
-  { id: "67f3bc7df632155056b84251", name: "Vikram Singh" },
-  { id: "67f3bc7df632155056b84252", name: "Neha Desai" },
-  { id: "67f3bc7df632155056b84253", name: "Rajesh Kumar" },
-  { id: "67f3bc7df632155056b84254", name: "Ananya Sharma" },
-  { id: "67f3bc7df632155056b84255", name: "Sanjay Patel" },
-  { id: "67f3bc7df632155056b84256", name: "Meera Gupta" },
-  { id: "67f3bc7df632155056b84257", name: "Anil Singh" },
-];
-
-// Sample data for products
-const sampleProducts = [
-  { id: "67f3bc87f632155056b8424d", name: "Chapati" },
-  { id: "67f3bc87f632155056b8424e", name: "Naan" },
-  { id: "67f3bc87f632155056b8424f", name: "Roti" },
-];
-
-// Sample data for customizations
-const sampleCustomizations = [
-  {
-    id: "67f3bcaaf632155056b84250",
-    name: "Plain",
-    productId: "67f3bc87f632155056b8424d",
-  },
-  {
-    id: "67f3bcb0f632155056b84251",
-    name: "Butter",
-    productId: "67f3bc87f632155056b8424d",
-  },
-  {
-    id: "67f3bcb4f632155056b84252",
-    name: "Garlic",
-    productId: "67f3bc87f632155056b8424e",
-  },
-  {
-    id: "67f3bcb9f632155056b84253",
-    name: "Cheese",
-    productId: "67f3bc87f632155056b8424e",
-  },
-  {
-    id: "67f3bcbef632155056b84254",
-    name: "Masala",
-    productId: "67f3bc87f632155056b8424f",
-  },
-];
+import {
+  Customer,
+  Customization,
+  NodeResponse,
+  Product,
+} from "@/interfaces/interface";
+import useFetch from "@/hooks/useFetch";
+import {
+  getAllCustomers,
+  getAllCustomizations,
+  getAllProducts,
+  createOrder, // Import the new createOrder function
+} from "@/services/api";
+import LoadingButton from "@/components/loadingBtn"; // Import the LoadingButton component
 
 // Define interfaces
 interface OrderItem {
@@ -69,15 +32,24 @@ interface OrderItem {
   customizationId: string;
 }
 
-interface OrderData {
-  customerId: string;
-  orderTime: string;
-  items: OrderItem[];
-}
-
 const AddOrder = ({ navigation }: any) => {
+  const { data: customerResponse } = useFetch<NodeResponse>(() =>
+    getAllCustomers()
+  );
+  const { data: productResponse } = useFetch<NodeResponse>(() =>
+    getAllProducts()
+  );
+  const { data: customizationResponse } = useFetch<NodeResponse>(() =>
+    getAllCustomizations()
+  );
+
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [customizations, setCustomizations] = useState<Customization[]>([]);
+  const [isSaving, setIsSaving] = useState(false); // Add loading state for save operation
+
   const [selectedCustomer, setSelectedCustomer] = useState("");
-  const [selectedOrderTime, setSelectedOrderTime] = useState("EVENING");
+  const [selectedOrderTime, setSelectedOrderTime] = useState("MORNING");
   const [orderItems, setOrderItems] = useState<OrderItem[]>([
     { productId: "", quantity: 1, customizationId: "" },
   ]);
@@ -88,19 +60,43 @@ const AddOrder = ({ navigation }: any) => {
   const [openCustomizationDropdown, setOpenCustomizationDropdown] =
     useState(-1);
 
-  // Search functionality
-  const [customerSearchQuery, setCustomerSearchQuery] = useState("");
+  useEffect(() => {
+    if (
+      customerResponse?.success &&
+      customerResponse.data &&
+      Array.isArray(customerResponse.data)
+    ) {
+      setCustomers(customerResponse.data);
+    }
 
-  // Filter customers based on search query
-  const filteredCustomers = sampleCustomers.filter((customer) =>
-    customer.name.toLowerCase().includes(customerSearchQuery.toLowerCase())
-  );
+    if (
+      productResponse?.success &&
+      productResponse.data &&
+      Array.isArray(productResponse.data)
+    ) {
+      setProducts(productResponse.data);
+    }
+
+    if (
+      customizationResponse?.success &&
+      customizationResponse.data &&
+      Array.isArray(customizationResponse.data)
+    ) {
+      setCustomizations(customizationResponse.data);
+    }
+  }, [customerResponse, productResponse, customizationResponse]);
 
   // Handle saving the order
-  const handleSaveOrder = () => {
+  const handleSaveOrder = async () => {
     // Validate all fields are filled
     if (!selectedCustomer || !selectedOrderTime) {
-      alert("Please select customer and order time");
+      ToastAndroid.showWithGravityAndOffset(
+        "Please select customer and order time",
+        ToastAndroid.LONG,
+        ToastAndroid.BOTTOM,
+        25,
+        50
+      );
       return;
     }
 
@@ -109,22 +105,50 @@ const AddOrder = ({ navigation }: any) => {
     );
 
     if (validItems.length === 0) {
-      alert("Please add at least one valid item");
+      ToastAndroid.showWithGravityAndOffset(
+        "Please add at least one valid item",
+        ToastAndroid.LONG,
+        ToastAndroid.BOTTOM,
+        25,
+        50
+      );
       return;
     }
 
-    // Create order object
-    const order: OrderData = {
-      customerId: selectedCustomer,
-      orderTime: selectedOrderTime,
-      items: validItems,
-    };
+    try {
+      setIsSaving(true);
 
-    // Here you would typically send the order to your API
-    console.log("Order saved:", order);
+      // Call the API to create the order
+      const response = await createOrder(
+        selectedCustomer,
+        selectedOrderTime,
+        validItems
+      );
 
-    // Navigate back to previous screen
-    navigation.goBack();
+      ToastAndroid.showWithGravityAndOffset(
+        response.message || "Order created successfully",
+        ToastAndroid.LONG,
+        ToastAndroid.BOTTOM,
+        25,
+        50
+      );
+
+      // Navigate back to previous screen
+      navigation.goBack();
+    } catch (error) {
+      console.error("Error creating order:", error);
+
+      // Show error message
+      ToastAndroid.showWithGravityAndOffset(
+        error instanceof Error ? error.message : "Failed to create order",
+        ToastAndroid.LONG,
+        ToastAndroid.BOTTOM,
+        25,
+        50
+      );
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   // Update item at specific index
@@ -184,7 +208,7 @@ const AddOrder = ({ navigation }: any) => {
             >
               <Text className="text-text-primary">
                 {selectedCustomer
-                  ? sampleCustomers.find((c) => c.id === selectedCustomer)?.name
+                  ? customers.find((c) => c.id === selectedCustomer)?.name
                   : "Select Customer"}
               </Text>
               <Ionicons
@@ -197,7 +221,7 @@ const AddOrder = ({ navigation }: any) => {
             {isCustomerDropdownOpen && (
               <View className="absolute top-14 left-0 right-0 bg-white rounded-lg shadow-lg border border-accent z-50 max-h-48">
                 <ScrollView>
-                  {sampleCustomers.map((customer) => (
+                  {customers.map((customer: Customer) => (
                     <Pressable
                       key={customer.id}
                       className={`p-3 border-b border-light ${
@@ -206,7 +230,7 @@ const AddOrder = ({ navigation }: any) => {
                           : ""
                       }`}
                       onPress={() => {
-                        setSelectedCustomer(customer.id);
+                        setSelectedCustomer(customer.id!);
                         setIsCustomerDropdownOpen(false);
                       }}
                     >
@@ -221,14 +245,6 @@ const AddOrder = ({ navigation }: any) => {
                       </Text>
                     </Pressable>
                   ))}
-
-                  {filteredCustomers.length === 0 && (
-                    <View className="p-4 items-center">
-                      <Text className="text-text-secondary">
-                        No customers found
-                      </Text>
-                    </View>
-                  )}
                 </ScrollView>
               </View>
             )}
@@ -311,8 +327,7 @@ const AddOrder = ({ navigation }: any) => {
                 >
                   <Text className="text-text-primary">
                     {item.productId
-                      ? sampleProducts.find((p) => p.id === item.productId)
-                          ?.name
+                      ? products.find((p) => p.id === item.productId)?.name
                       : "Select Product"}
                   </Text>
                   <Ionicons
@@ -329,7 +344,7 @@ const AddOrder = ({ navigation }: any) => {
                 {openProductDropdown === index && (
                   <View className="absolute top-14 left-0 right-0 bg-white rounded-lg shadow-lg border border-accent z-50">
                     <ScrollView>
-                      {sampleProducts.map((product) => (
+                      {products.map((product: Product) => (
                         <Pressable
                           key={product.id}
                           className={`p-3 border-b border-light ${
@@ -372,7 +387,13 @@ const AddOrder = ({ navigation }: any) => {
                       );
                       setOpenProductDropdown(-1);
                     } else {
-                      alert("Please select a product first");
+                      ToastAndroid.showWithGravityAndOffset(
+                        "Please select a product first",
+                        ToastAndroid.SHORT,
+                        ToastAndroid.BOTTOM,
+                        25,
+                        50
+                      );
                     }
                   }}
                 >
@@ -384,9 +405,9 @@ const AddOrder = ({ navigation }: any) => {
                     }`}
                   >
                     {item.customizationId
-                      ? sampleCustomizations.find(
+                      ? customizations.find(
                           (c) => c.id === item.customizationId
-                        )?.name
+                        )?.description
                       : "Select Customization"}
                   </Text>
                   <Ionicons
@@ -403,7 +424,7 @@ const AddOrder = ({ navigation }: any) => {
                 {openCustomizationDropdown === index && (
                   <View className="absolute top-14 left-0 right-0 bg-white rounded-lg shadow-lg border border-accent z-50">
                     <ScrollView>
-                      {sampleCustomizations
+                      {customizations
                         .filter((c) => c.productId === item.productId)
                         .map((customization) => (
                           <Pressable
@@ -429,7 +450,7 @@ const AddOrder = ({ navigation }: any) => {
                                   : "text-text-primary"
                               }`}
                             >
-                              {customization.name}
+                              {customization.description}
                             </Text>
                           </Pressable>
                         ))}
@@ -488,13 +509,15 @@ const AddOrder = ({ navigation }: any) => {
           </Text>
         </Pressable>
 
-        {/* Save Button (Bottom) */}
-        <Pressable
+        {/* Save Button (Bottom) - Replace with LoadingButton */}
+        <LoadingButton
           className="bg-primary rounded-lg py-3 mb-10"
+          isLoading={isSaving}
+          loadingText="Saving Order"
+          defaultText="Save Order"
           onPress={handleSaveOrder}
-        >
-          <Text className="text-white font-medium text-center">Save Order</Text>
-        </Pressable>
+          disabled={isSaving}
+        />
       </ScrollView>
     </SafeAreaView>
   );

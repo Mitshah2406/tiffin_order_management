@@ -35,6 +35,7 @@ export interface Customer {
     updatedAt?: string;
 }
 
+
 export interface Customization {
     id?: string;
     description: string;

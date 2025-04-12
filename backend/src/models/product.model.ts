@@ -64,14 +64,21 @@ class Product {
         return products;
     }
     async delete(id: string) {
-        const products = await prisma.getClient().product.delete(
-            {
-                where: {
-                    id: id,
-                }
-            }
-        );
-        return products;
+        const prismaClient = prisma.getClient();
+
+        await prismaClient.customizations.deleteMany({
+            where: {
+                productId: id,
+            },
+        });
+
+        const deletedProduct = await prismaClient.product.delete({
+            where: {
+                id: id,
+            },
+        });
+
+        return deletedProduct;
     }
 }
 

@@ -254,7 +254,7 @@ const CustomizationPage = ({ navigation, route }: any) => {
       setIsLoading(true);
     } else if (customizations.length > 0) {
       setIsLoading(false);
-    } else if (!customizationLoading && apiResponse) {
+    } else if (!customizationLoading && customizationResponse) {
       setIsLoading(false);
     }
   }, [customizationLoading, customizations, customizationResponse]);
@@ -277,6 +277,9 @@ const CustomizationPage = ({ navigation, route }: any) => {
                   Customizations
                 </Text>
               </View>
+              <TouchableOpacity onPress={() => refetch()}>
+                <Ionicons name="refresh" size={24} color="white" />
+              </TouchableOpacity>
             </View>
           </View>
 
@@ -284,7 +287,7 @@ const CustomizationPage = ({ navigation, route }: any) => {
             behavior={Platform.OS === "ios" ? "padding" : "height"}
             className="flex-1"
           >
-            <ScrollView className="p-4">
+            <View className="p-4 flex-1">
               <View className="bg-white rounded-xl p-5 shadow-lg border border-accent mb-5">
                 <Text className="text-text-primary font-bold text-lg mb-3">
                   Add New Customization
@@ -385,9 +388,12 @@ const CustomizationPage = ({ navigation, route }: any) => {
                   data={customizations}
                   renderItem={renderCustomizationItem}
                   keyExtractor={(item) => item.id!}
-                  showsVerticalScrollIndicator={false}
-                  className="mb-20"
-                  scrollEnabled={false}
+                  scrollEnabled={true}
+                  showsVerticalScrollIndicator={true}
+                  style={{
+                    maxHeight: 600,
+                  }}
+                  contentContainerStyle={{ paddingBottom: 10 }}
                 />
               ) : (
                 <View className="bg-white rounded-xl p-6 shadow-md border border-accent items-center justify-center">
@@ -404,7 +410,7 @@ const CustomizationPage = ({ navigation, route }: any) => {
                   </Text>
                 </View>
               )}
-            </ScrollView>
+            </View>
           </KeyboardAvoidingView>
         </View>
 

@@ -146,25 +146,25 @@ export const getAllProducts = async () => {
   }
 }
 
-// export const getAllProductsWithCustomizations = async () => {
-//   try {
-//     const response = await fetch(`${NODE_CONFIG.BASE_URL}/api/product/customization`, {
-//       method: "GET",
-//       headers: NODE_CONFIG.headers,
-//     });
+export const getAllProductsWithCustomizations = async () => {
+  try {
+    const response = await fetch(`${NODE_CONFIG.BASE_URL}/api/customizations/product/getProductsWithCustomization`, {
+      method: "GET",
+      headers: NODE_CONFIG.headers,
+    });
 
-//     if (!response.ok) {
-//       throw new Error(`Failed to fetch products with customizations: ${response.status}`);
-//     }
+    if (!response.ok) {
+      throw new Error(`Failed to fetch products with customizations: ${response.status}`);
+    }
 
-//     const data = await response.json();
+    const data = await response.json();
 
-//     return data;
-//   } catch (error) {
-//     console.error(error);
-//     throw error;
-//   }
-// }
+    return data;
+  } catch (error) {
+    console.error(error);
+    throw error;
+  }
+}
 
 
 // Customization Functions
@@ -259,16 +259,21 @@ export const createOrder = async (
     productId: string;
     quantity: number;
     customizationId: string;
-  }>
+  }>,
+  orderDate: Date = new Date() // Default to current date if not provided
 ) => {
   try {
     console.log("Data Recvd");
-    console.log(customerId, orderTime, items);
-
+    console.log(customerId, orderTime, items, orderDate);
 
     const response = await fetch(`${NODE_CONFIG.BASE_URL}/api/order`, {
       method: "POST",
-      body: JSON.stringify({ customerId, orderTime, items }),
+      body: JSON.stringify({
+        customerId,
+        orderTime,
+        items,
+        orderDate: orderDate.toISOString() // Convert Date to ISO string for API
+      }),
       headers: NODE_CONFIG.headers,
     });
 

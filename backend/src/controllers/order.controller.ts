@@ -8,11 +8,10 @@ class OrderController {
     // Create a new order with items
     static async createOrder(req: Request, res: Response): Promise<void> {
         try {
-            const { customerId, orderTime, items } = req.body;
+            const { customerId, orderTime, items, orderDate } = req.body;
 
             console.log("In backend");
             console.log(req.body);
-
 
             // Validate request body
             if (!customerId) {
@@ -32,6 +31,21 @@ class OrderController {
                 return;
             }
 
+            // Parse orderDate if provided, otherwise use current date
+            let parsedOrderDate = new Date();
+            if (orderDate) {
+                try {
+                    parsedOrderDate = new Date(orderDate);
+                    // Check if date is valid
+                    if (isNaN(parsedOrderDate.getTime())) {
+                        throw new Error('Invalid date format');
+                    }
+                } catch (error) {
+                    res.status(400).json({ message: 'Invalid order date format' });
+                    return;
+                }
+            }
+
             // Check if customer exists
             const customer = await prisma.getClient().customer.findUnique({
                 where: { id: customerId },
@@ -47,7 +61,8 @@ class OrderController {
             const products = await prisma.getClient().product.findMany({
                 where: { id: { in: productIds } },
             });
-            // Verify all products exist
+
+            // Verify all customizations exist
             const customizationIds = items.map(item => item.customizationId);
             console.log('customizationIds', customizationIds);
             const prices = await prisma.getClient().customizations.findMany({
@@ -70,6 +85,7 @@ class OrderController {
                     totalItems += item.quantity;
                 }
             });
+
             if (products.length !== [...new Set(productIds)].length) {
                 res.status(404).json({ message: 'One or more products not found' });
                 return;
@@ -77,10 +93,11 @@ class OrderController {
 
             // Create the order with items in a transaction
             const order = await prisma.getClient().$transaction(async (prisma) => {
-                // Create the order first
+                // Create the order first, now including orderDate
                 const newOrder = await prisma.order.create({
                     data: {
                         orderTime: orderTime,
+                        orderDate: parsedOrderDate, // Use the parsed date
                         customerId: customerId,
                         orderAmount: totalPrice,
                         orderStatus: "UNPAID",
@@ -109,10 +126,6 @@ class OrderController {
                             include: {
                                 product: true,
                             }
-                            // select: {
-                            //     customizationId: true,
-                            //     quantity: true,
-                            // }
                         },
                     },
                 });
@@ -125,50 +138,70 @@ class OrderController {
         }
     }
     static async getAll(req: Request, res: Response) {
-        const order = new Order();
-        const data = await order.getAll();
-        return new JsonResponse(req, res).jsonSuccess(data, "Orders fetched successfully");
+        try {
+            const order = new Order();
+            const data = await order.getAll();
+            return new JsonResponse(req, res).jsonSuccess(data, "Orders fetched successfully");
+        } catch (error) {
+            res.status(500).json({ message: 'Error fetching orders', error });
+        }
     }
     static async getAllOfCustomer(req: Request, res: Response) {
-        const {
-            month, year, paid
-        } = req.query;
-        const customerId = req.params.customerId;
-        if (!customerId || !month || !paid) {
-            return new JsonResponse(req, res).jsonError("Missing required parameters", 400);
+        try {
+            const {
+                month, year, paid
+            } = req.query;
+            const customerId = req.params.customerId;
+            if (!customerId || !month || !paid) {
+                return new JsonResponse(req, res).jsonError("Missing required parameters", 400);
+            }
+            const order = new Order();
+            const data = await order.getAllOfCustomer(customerId, Number(year), Number(month), paid.toString());
+            return new JsonResponse(req, res).jsonSuccess(data, "Orders fetched successfully for customer");
+        } catch (error) {
+            res.status(500).json({ message: 'Error fetching orders', error });
         }
-        const order = new Order();
-        const data = await order.getAllOfCustomer(customerId, Number(year), Number(month), paid.toString());
-        return new JsonResponse(req, res).jsonSuccess(data, "Orders fetched successfully for customer");
     }
     static async markPaid(req: Request, res: Response) {
-        const { id } = req.params;
-        const order = new Order();
-        const data = await order.markAsPaid(id);
+        try {
+            const { id } = req.params;
+            const order = new Order();
+            const data = await order.markAsPaid(id);
 
-        return new JsonResponse(req, res).jsonSuccess(data, "Order marked as paid successfully");
+            return new JsonResponse(req, res).jsonSuccess(data, "Order marked as paid successfully");
+        } catch (error) {
+            res.status(500).json({ message: 'Error marking order as paid', error });
+        }
     }
     static async markUnpaid(req: Request, res: Response) {
-        const { id } = req.params;
-        const order = new Order();
-        const data = await order.markAsUnpaid(id);
+        try {
+            const { id } = req.params;
+            const order = new Order();
+            const data = await order.markAsUnpaid(id);
 
-        return new JsonResponse(req, res).jsonSuccess(data, "Order marked as unpaid successfully");
+            return new JsonResponse(req, res).jsonSuccess(data, "Order marked as unpaid successfully");
+        } catch (error) {
+            res.status(500).json({ message: 'Error marking order as unpaid', error });
+        }
     }
     static async markMultiplePaid(req: Request, res: Response) {
-        const { orderIds } = req.body;
+        try {
+            const { orderIds } = req.body;
 
-        if (!orderIds || !Array.isArray(orderIds) || orderIds.length === 0) {
-            return new JsonResponse(req, res).jsonError("No order IDs provided", 400);
+            if (!orderIds || !Array.isArray(orderIds) || orderIds.length === 0) {
+                return new JsonResponse(req, res).jsonError("No order IDs provided", 400);
+            }
+
+            const order = new Order();
+            const data = await order.markMultipleAsPaid(orderIds);
+
+            return new JsonResponse(req, res).jsonSuccess(
+                data,
+                `${data.count} orders marked as paid successfully`
+            );
+        } catch (error) {
+            res.status(500).json({ message: 'Error marking multiple orders as paid', error });
         }
-
-        const order = new Order();
-        const data = await order.markMultipleAsPaid(orderIds);
-
-        return new JsonResponse(req, res).jsonSuccess(
-            data,
-            `${data.count} orders marked as paid successfully`
-        );
     }
 }
 

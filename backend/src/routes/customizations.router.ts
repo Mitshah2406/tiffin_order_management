@@ -8,6 +8,8 @@ router.post("/", new TryCatch(customizationsController.create).tryCatchGlobe());
 router.get("/", new TryCatch(customizationsController.getAll).tryCatchGlobe());
 router.put("/:id", new TryCatch(customizationsController.edit).tryCatchGlobe());
 router.delete("/:id", new TryCatch(customizationsController.delete).tryCatchGlobe());
+router.get("/product/getProductsWithCustomization", new TryCatch(customizationsController.getProductWithCustomization).tryCatchGlobe());
+
 
 
 export default router;

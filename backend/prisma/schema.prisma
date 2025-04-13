@@ -15,7 +15,7 @@ generator client {
 
 enum Timing {
   MORNING
-  NIGHT
+  EVENING
 }
 
 model Customer {

@@ -8,6 +8,8 @@ import {
   StatusBar,
   SafeAreaView,
   ToastAndroid,
+  Platform,
+  Modal,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import {
@@ -22,6 +24,7 @@ import {
   getAllCustomizations,
   getAllProducts,
   createOrder,
+  getAllProductsWithCustomizations,
 } from "@/services/api";
 import LoadingButton from "@/components/loadingBtn"; // Import the LoadingButton component
 
@@ -37,7 +40,7 @@ const AddOrder = ({ navigation }: any) => {
     getAllCustomers()
   );
   const { data: productResponse } = useFetch<NodeResponse>(() =>
-    getAllProducts()
+    getAllProductsWithCustomizations()
   );
   const { data: customizationResponse } = useFetch<NodeResponse>(() =>
     getAllCustomizations()
@@ -53,6 +56,10 @@ const AddOrder = ({ navigation }: any) => {
   const [orderItems, setOrderItems] = useState<OrderItem[]>([
     { productId: "", quantity: 1, customizationId: "" },
   ]);
+
+  // Add date picker state
+  const [orderDate, setOrderDate] = useState(new Date());
+  const [showDateModal, setShowDateModal] = useState(false);
 
   // Dropdown states
   const [isCustomerDropdownOpen, setIsCustomerDropdownOpen] = useState(false);
@@ -86,6 +93,30 @@ const AddOrder = ({ navigation }: any) => {
     }
   }, [customerResponse, productResponse, customizationResponse]);
 
+  // Format date helper function
+  const formatDate = (date: any) => {
+    const months = [
+      "January",
+      "February",
+      "March",
+      "April",
+      "May",
+      "June",
+      "July",
+      "August",
+      "September",
+      "October",
+      "November",
+      "December",
+    ];
+
+    const day = date.getDate();
+    const month = months[date.getMonth()];
+    const year = date.getFullYear();
+
+    return `${day} ${month} ${year}`;
+  };
+
   // Handle saving the order
   const handleSaveOrder = async () => {
     // Validate all fields are filled
@@ -118,11 +149,12 @@ const AddOrder = ({ navigation }: any) => {
     try {
       setIsSaving(true);
 
-      // Call the API to create the order
+      // Call the API to create the order with orderDate
       const response = await createOrder(
         selectedCustomer,
         selectedOrderTime,
-        validItems
+        validItems,
+        orderDate
       );
 
       ToastAndroid.showWithGravityAndOffset(
@@ -180,9 +212,196 @@ const AddOrder = ({ navigation }: any) => {
     ]);
   };
 
+  // Custom date picker component using Expo core components
+  const DatePickerModal = () => {
+    const [tempDate, setTempDate] = useState(new Date(orderDate));
+
+    // For date picker
+    const years = Array.from(
+      { length: 10 },
+      (_, i) => new Date().getFullYear() - i
+    );
+    const months = [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "May",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec",
+    ];
+
+    // Get max days for selected month/year
+    const getMaxDays = (year: any, month: any) => {
+      return new Date(year, month + 1, 0).getDate();
+    };
+
+    const handleConfirm = () => {
+      setOrderDate(tempDate);
+      setShowDateModal(false);
+    };
+
+    return (
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={showDateModal}
+        onRequestClose={() => setShowDateModal(false)}
+      >
+        <View className="flex-1 justify-end bg-opacity-50">
+          <View className="bg-white rounded-t-xl p-5">
+            <Text className="text-xl font-bold text-center mb-4">
+              Select Date
+            </Text>
+
+            <View className="flex-row justify-between mb-4">
+              {/* Year selector */}
+              <View className="flex-1 mr-2">
+                <Text className="text-text-secondary mb-1">Year</Text>
+                <View className="bg-light rounded-lg p-2 h-48">
+                  <ScrollView>
+                    {years.map((year) => (
+                      <Pressable
+                        key={year}
+                        className={`p-2 ${
+                          tempDate.getFullYear() === year ? "bg-primary" : ""
+                        } rounded-lg mb-1`}
+                        onPress={() => {
+                          const newDate = new Date(tempDate);
+                          newDate.setFullYear(year);
+                          setTempDate(newDate);
+                        }}
+                      >
+                        <Text
+                          className={`${
+                            tempDate.getFullYear() === year
+                              ? "text-white"
+                              : "text-text-primary"
+                          } text-center`}
+                        >
+                          {year}
+                        </Text>
+                      </Pressable>
+                    ))}
+                  </ScrollView>
+                </View>
+              </View>
+
+              {/* Month selector */}
+              <View className="flex-1 mr-2">
+                <Text className="text-text-secondary mb-1">Month</Text>
+                <View className="bg-light rounded-lg p-2 h-48">
+                  <ScrollView>
+                    {months.map((month, index) => (
+                      <Pressable
+                        key={month}
+                        className={`p-2 ${
+                          tempDate.getMonth() === index ? "bg-primary" : ""
+                        } rounded-lg mb-1`}
+                        onPress={() => {
+                          const newDate = new Date(tempDate);
+                          newDate.setMonth(index);
+
+                          // Adjust day if needed (e.g., Feb 31 -> Feb 28/29)
+                          const maxDays = getMaxDays(
+                            newDate.getFullYear(),
+                            index
+                          );
+                          if (newDate.getDate() > maxDays) {
+                            newDate.setDate(maxDays);
+                          }
+
+                          setTempDate(newDate);
+                        }}
+                      >
+                        <Text
+                          className={`${
+                            tempDate.getMonth() === index
+                              ? "text-white"
+                              : "text-text-primary"
+                          } text-center`}
+                        >
+                          {month}
+                        </Text>
+                      </Pressable>
+                    ))}
+                  </ScrollView>
+                </View>
+              </View>
+
+              {/* Day selector */}
+              <View className="flex-1">
+                <Text className="text-text-secondary mb-1">Day</Text>
+                <View className="bg-light rounded-lg p-2 h-48">
+                  <ScrollView>
+                    {Array.from(
+                      {
+                        length: getMaxDays(
+                          tempDate.getFullYear(),
+                          tempDate.getMonth()
+                        ),
+                      },
+                      (_, i) => i + 1
+                    ).map((day) => (
+                      <Pressable
+                        key={day}
+                        className={`p-2 ${
+                          tempDate.getDate() === day ? "bg-primary" : ""
+                        } rounded-lg mb-1`}
+                        onPress={() => {
+                          const newDate = new Date(tempDate);
+                          newDate.setDate(day);
+                          setTempDate(newDate);
+                        }}
+                      >
+                        <Text
+                          className={`${
+                            tempDate.getDate() === day
+                              ? "text-white"
+                              : "text-text-primary"
+                          } text-center`}
+                        >
+                          {day}
+                        </Text>
+                      </Pressable>
+                    ))}
+                  </ScrollView>
+                </View>
+              </View>
+            </View>
+
+            <View className="flex-row justify-end mt-3">
+              <Pressable
+                className="bg-light rounded-lg px-4 py-2 mr-2"
+                onPress={() => setShowDateModal(false)}
+              >
+                <Text className="text-text-primary">Cancel</Text>
+              </Pressable>
+              <Pressable
+                className="bg-primary rounded-lg px-4 py-2"
+                onPress={handleConfirm}
+              >
+                <Text className="text-white">Confirm</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
+    );
+  };
+
   return (
-    <SafeAreaView className="flex-1 bg-primary-bg">
-      <StatusBar barStyle="light-content" />
+    <SafeAreaView
+      className="flex-1 bg-primary-bg"
+      style={{ opacity: showDateModal ? 0.3 : 1 }}
+    >
+      <StatusBar className="bg-primary" />
+      {showDateModal && <DatePickerModal />}
 
       {/* Header */}
       <View className="bg-primary px-4 py-4 shadow-md">
@@ -249,6 +468,18 @@ const AddOrder = ({ navigation }: any) => {
               </View>
             )}
           </View>
+        </View>
+
+        {/* Order Date Picker */}
+        <View className="mb-4">
+          <Text className="text-text-secondary mb-1">Order Date</Text>
+          <Pressable
+            className="bg-light rounded-lg p-3 flex-row justify-between items-center"
+            onPress={() => setShowDateModal(true)}
+          >
+            <Text className="text-text-primary">{formatDate(orderDate)}</Text>
+            <Ionicons name="calendar-outline" size={16} color="#7C84A3" />
+          </Pressable>
         </View>
 
         {/* Order Time Selector */}
@@ -509,7 +740,7 @@ const AddOrder = ({ navigation }: any) => {
           </Text>
         </Pressable>
 
-        {/* Save Button (Bottom) - Replace with LoadingButton */}
+        {/* Save Button (Bottom) */}
         <LoadingButton
           className="bg-primary rounded-lg py-3 mb-10"
           isLoading={isSaving}

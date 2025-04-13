@@ -1,10 +1,10 @@
 {
   "expo": {
-    "name": "moms_kitchen",
+    "name": "Mom's Kitchen",
     "slug": "moms_kitchen",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/adaptive-icon.png",
     "scheme": "myapp",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -13,26 +13,41 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/react-logo.png",
+        "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "package": "com.atharva884.moms_kitchen"
     },
     "web": {
       "bundler": "metro",
       "output": "static",
       "favicon": "./assets/images/favicon.png"
     },
+    "splash": {
+      "image": "./assets/images/splash-icon-light.png",
+      "resizeMode": "fill"
+    },
     "plugins": [
       "expo-router",
       [
         "expo-font",
         {
-          "fonts": ["./assets/fonts/EmilysCandy-Regular.ttf"]
+          "fonts": [
+            "./assets/fonts/EmilysCandy-Regular.ttf"
+          ]
         }
       ]
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "6e4c4474-13f7-4085-a609-ec1fc3e6d9ed"
+      }
     }
   }
 }

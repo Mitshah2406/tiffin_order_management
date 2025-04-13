@@ -16,20 +16,6 @@ class ProductController {
         }
     }
 
-    // static async getProductWithCustomization(req: Request, res: Response) {
-    //     try {
-    //         console.log("comess");
-
-    //         const product = new Product()
-    //         const data = await product.getProductWithCustomization();
-
-    //         return new JsonResponse(req, res).jsonSuccess(data, "Products fetched successfully with customization");
-    //     } catch (error) {
-    //         console.log(error);
-
-    //         return new JsonResponse(req, res).jsonError("Failed to fetch products with customization", 404);
-    //     }
-    // }
 
     static async editProduct(req: Request, res: Response) {
         try {
@@ -47,24 +33,36 @@ class ProductController {
     }
 
     static async getAll(req: Request, res: Response) {
-        const product = new Product()
-        const data = await product.getAll();
+        try {
+            const product = new Product()
+            const data = await product.getAll();
 
-        return new JsonResponse(req, res).jsonSuccess(data, "Products fetched successfully");
+            return new JsonResponse(req, res).jsonSuccess(data, "Products fetched successfully");
+        } catch (error) {
+            return new JsonResponse(req, res).jsonError("Failed to fetch products", 500);
+        }
     }
     static async getById(req: Request, res: Response) {
-        const { id } = req.params;
-        const product = new Product()
-        const data = await product.getById(id);
+        try {
+            const { id } = req.params;
+            const product = new Product()
+            const data = await product.getById(id);
 
-        return new JsonResponse(req, res).jsonSuccess(data, "Product fetched successfully");
+            return new JsonResponse(req, res).jsonSuccess(data, "Product fetched successfully");
+        } catch (error) {
+            return new JsonResponse(req, res).jsonError("Failed to fetch product", 500);
+        }
     }
     static async delete(req: Request, res: Response) {
-        const { id } = req.params;
-        const product = new Product()
-        const data = await product.delete(id);
+        try {
+            const { id } = req.params;
+            const product = new Product()
+            const data = await product.delete(id);
 
-        return new JsonResponse(req, res).jsonSuccess(data, "Product deleted successfully");
+            return new JsonResponse(req, res).jsonSuccess(data, "Product deleted successfully");
+        } catch (error) {
+            return new JsonResponse(req, res).jsonError("Failed to delete product", 500);
+        }
     }
 
 }

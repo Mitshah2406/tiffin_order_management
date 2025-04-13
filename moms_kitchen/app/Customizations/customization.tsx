@@ -179,21 +179,24 @@ const CustomizationPage = ({ navigation, route }: any) => {
           50
         );
       } else {
-        ToastAndroid.showWithGravityAndOffset(
-          response.message || `Failed to delete Customization`,
-          ToastAndroid.LONG,
-          ToastAndroid.BOTTOM,
-          25,
-          50
-        );
-        return;
       }
 
-      setIsDeleteModalVisible(false);
       setCustomizationToDelete(null);
-    } catch (error) {
+    } catch (error: any) {
       console.log("Error deleting customization:", error);
+      const errorMessage =
+        error.response?.data?.message ||
+        "Unable to delete this customization as it is being used in an order.";
+
+      ToastAndroid.showWithGravityAndOffset(
+        errorMessage,
+        ToastAndroid.LONG,
+        ToastAndroid.BOTTOM,
+        25,
+        50
+      );
     } finally {
+      setIsDeleteModalVisible(false);
       setIsDeleting(false);
     }
   };
@@ -261,7 +264,7 @@ const CustomizationPage = ({ navigation, route }: any) => {
 
   return (
     <>
-      <StatusBar barStyle="light-content" />
+      <StatusBar className="bg-primary" />
       <SafeAreaView className="flex-1 bg-primary-bg">
         <View className="flex-1" style={{ opacity: isModalOpen ? 0.3 : 1 }}>
           <View className="bg-primary px-4 py-4 shadow-md">

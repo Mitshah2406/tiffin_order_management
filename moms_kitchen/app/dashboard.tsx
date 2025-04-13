@@ -6,7 +6,6 @@ import {
   ScrollView,
   TouchableOpacity,
   StatusBar,
-  FlatList,
   ActivityIndicator,
   ToastAndroid,
   RefreshControl,
@@ -250,9 +249,12 @@ const Dashboard = ({ navigation, route }: any) => {
   };
 
   // Render each pending customer item
-  const renderPendingCustomerItem = ({ item }: { item: PendingCustomer }) => {
+  const renderPendingCustomerItem = (item: PendingCustomer) => {
     return (
-      <View className="bg-white rounded-xl p-4 mb-3 shadow-md border border-accent">
+      <View
+        key={item.id}
+        className="bg-white rounded-xl p-4 mb-3 shadow-md border border-accent"
+      >
         <View className="flex-row justify-between items-center">
           <View className="flex-row items-center">
             <View className="w-10 h-10 bg-accent rounded-full items-center justify-center mr-3">
@@ -263,7 +265,7 @@ const Dashboard = ({ navigation, route }: any) => {
                 {item.name}
               </Text>
               <Text className="text-red-500 font-medium">
-                {Helper.formatRupees(item.totalAmount)} pending
+                {Helper.formatRupees(item.totalAmount)}
               </Text>
             </View>
           </View>
@@ -303,68 +305,62 @@ const Dashboard = ({ navigation, route }: any) => {
           </View>
         </View>
 
-        <View className="flex-1">
-          <ScrollView
-            className="flex-1 px-4 py-6"
-            nestedScrollEnabled={false}
-            refreshControl={
-              <RefreshControl
-                refreshing={isRefreshing}
-                onRefresh={handleRefresh}
-                colors={["#1672EC"]}
-              />
-            }
-          >
-            {renderServiceGrid()}
+        {/* Single ScrollView for the entire content */}
+        <ScrollView
+          className="flex-1 px-4 py-6"
+          refreshControl={
+            <RefreshControl
+              refreshing={isRefreshing}
+              onRefresh={handleRefresh}
+              colors={["#1672EC"]}
+            />
+          }
+        >
+          {/* Service Grid Section */}
+          {renderServiceGrid()}
 
-            {/* Summary Grid */}
-            <View className="flex-row gap-4 mb-6">
-              <View className="flex-1 bg-white rounded-xl p-5 shadow-lg border border-accent">
-                <View className="w-12 h-12 bg-lightError rounded-full items-center justify-center mb-3">
-                  <Ionicons name="wallet-outline" size={22} color="#FF4D4F" />
-                </View>
-                <Text className="text-text-primary font-bold text-lg mb-1">
-                  Pending Amount
-                </Text>
-                <Text className="text-text-secondary">
-                  {Helper.formatRupees(dashboardStats.financial.pendingAmount)}
-                </Text>
+          {/* Summary Grid */}
+          <View className="flex-row gap-4 mb-4">
+            <View className="flex-1 bg-white rounded-xl p-5 shadow-lg border border-accent">
+              <View className="w-12 h-12 bg-lightError rounded-full items-center justify-center mb-3">
+                <Ionicons name="wallet-outline" size={22} color="#FF4D4F" />
               </View>
-
-              <View className="flex-1 bg-white rounded-xl p-5 shadow-lg border border-accent">
-                <View className="w-12 h-12 bg-lightSuccess rounded-full items-center justify-center mb-3">
-                  <Ionicons
-                    name="trending-up-outline"
-                    size={22}
-                    color="#4CAF50"
-                  />
-                </View>
-                <Text className="text-text-primary font-bold text-lg mb-1">
-                  Earned Amount
-                </Text>
-                <Text className="text-text-secondary">
-                  {Helper.formatRupees(dashboardStats.financial.earnedAmount)}
-                </Text>
-              </View>
+              <Text className="text-text-primary font-bold text-lg mb-1">
+                Pending Amount
+              </Text>
+              <Text className="text-text-secondary">
+                {Helper.formatRupees(dashboardStats.financial.pendingAmount)}
+              </Text>
             </View>
-          </ScrollView>
 
-          <View className="flex-1">
-            <View className="flex-row justify-between px-4 py-4 items-center">
+            <View className="flex-1 bg-white rounded-xl p-5 shadow-lg border border-accent">
+              <View className="w-12 h-12 bg-lightSuccess rounded-full items-center justify-center mb-3">
+                <Ionicons
+                  name="trending-up-outline"
+                  size={22}
+                  color="#4CAF50"
+                />
+              </View>
+              <Text className="text-text-primary font-bold text-lg mb-1">
+                Earned Amount
+              </Text>
+              <Text className="text-text-secondary">
+                {Helper.formatRupees(dashboardStats.financial.earnedAmount)}
+              </Text>
+            </View>
+          </View>
+
+          {/* Pending Payments Section */}
+          <View>
+            <View className="flex-row justify-between py-4 items-center">
               <Text className="text-text-primary font-bold text-lg">
                 Pending Payments
               </Text>
             </View>
 
-            <View className="px-4 mb-4" style={{ height: 400 }}>
+            <View>
               {pendingCustomers.length > 0 ? (
-                <FlatList
-                  data={pendingCustomers}
-                  renderItem={renderPendingCustomerItem}
-                  keyExtractor={(item) => item.id}
-                  showsVerticalScrollIndicator={true}
-                  className="mb-20"
-                />
+                pendingCustomers.map((item) => renderPendingCustomerItem(item))
               ) : (
                 <View className="bg-white rounded-xl p-6 shadow-md border border-accent items-center justify-center">
                   <Ionicons name="checkmark-circle" size={50} color="#4CAF50" />
@@ -378,7 +374,10 @@ const Dashboard = ({ navigation, route }: any) => {
               )}
             </View>
           </View>
-        </View>
+
+          {/* Add some bottom padding to ensure the FAB doesn't cover content */}
+          <View className="h-20" />
+        </ScrollView>
 
         {/* Floating Action Button */}
         <TouchableOpacity

@@ -66,20 +66,48 @@ class Product {
     async delete(id: string) {
         const prismaClient = prisma.getClient();
 
-        await prismaClient.customizations.deleteMany({
-            where: {
-                productId: id,
-            },
-        });
+        try {
+            // First, check if there are any customizations for this product
+            const customizationCount = await prismaClient.customizations.count({
+                where: {
+                    productId: id,
+                },
+            });
 
-        const deletedProduct = await prismaClient.product.delete({
-            where: {
-                id: id,
-            },
-        });
+            if (customizationCount > 0) {
+                throw new Error(
+                    `This product has ${customizationCount} customization options. Please remove all customizations before deleting this product.`
+                );
+            }
 
-        return deletedProduct;
+            // Check if product is used in any orders
+            const productUsageCount = await prismaClient.item.count({
+                where: {
+                    productId: id,
+                },
+            });
+
+            if (productUsageCount > 0) {
+                throw new Error(
+                    `This product cannot be deleted because it is used in ${productUsageCount} order(s).`
+                );
+            }
+
+            // If no customizations or orders use this product, proceed with deletion
+            const deletedProduct = await prismaClient.product.delete({
+                where: {
+                    id: id,
+                },
+            });
+
+            return deletedProduct;
+        } catch (error) {
+            // Re-throw the error to be handled by the API layer
+            throw error;
+        }
     }
+
+
 }
 
 export default Product;

@@ -174,14 +174,26 @@ const AddProduct = ({ navigation }: any) => {
           50
         );
       }
-    } catch (error) {
+    } catch (error: any) {
       console.log("Error deleting product:", error);
+
+      // If there's an error message from the server, display it
+      const errorMessage =
+        error.response?.data?.message ||
+        "Unable to delete this product as it is being used in an customizations.";
+
+      ToastAndroid.showWithGravityAndOffset(
+        errorMessage,
+        ToastAndroid.LONG,
+        ToastAndroid.BOTTOM,
+        25,
+        50
+      );
     } finally {
       setDeleting(false);
+      setIsDeleteModalVisible(false);
+      setProductToDelete(null);
     }
-
-    setIsDeleteModalVisible(false);
-    setProductToDelete(null);
   };
 
   const renderProductItem = ({ item }: { item: Product }) => {
@@ -215,7 +227,7 @@ const AddProduct = ({ navigation }: any) => {
 
   return (
     <>
-      <StatusBar barStyle="light-content" />
+      <StatusBar className="bg-primary" />
       <SafeAreaView className="flex-1 bg-primary-bg">
         <View className="flex-1" style={{ opacity: isModalOpen ? 0.3 : 1 }}>
           <View className="bg-primary px-4 py-4 shadow-md">

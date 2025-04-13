@@ -5,4 +5,5 @@ import customerController from "../controllers/customer.controller";
 const router: Router = express.Router();
 router.post("/", new TryCatch(customerController.create).tryCatchGlobe());
 router.get("/", new TryCatch(customerController.getAll).tryCatchGlobe());
+
 export default router;

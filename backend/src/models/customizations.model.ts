@@ -45,28 +45,71 @@ class Customizations {
     }
 
     async delete(id: string) {
-        const customization = await prisma.getClient().customizations.delete({
+        const prismaClient = prisma.getClient();
+
+        // First check if the customization is used in any orders
+        const customizationUsageCount = await prismaClient.item.count({
             where: {
-                id: id,
-            },
-            select: {
-                id: true,
-                productId: true,
+                customizationId: id,
             }
         });
-        const product = await prisma.getClient().product.update({
-            where: {
-                id: customization.productId,
-            },
-            data: {
-                Customizations: {
-                    disconnect: {
-                        id: id,
+
+        // If customization is in use, throw error or handle accordingly
+        if (customizationUsageCount > 0) {
+            throw new Error(
+                `Cannot delete customization. It is being used in ${customizationUsageCount} order item(s).`
+            );
+        }
+
+        // If it's safe to delete, proceed with deletion
+        return await prismaClient.$transaction(async (tx) => {
+            // Delete the customization
+            const deletedCustomization = await tx.customizations.delete({
+                where: {
+                    id: id,
+                },
+                select: {
+                    id: true,
+                    productId: true,
+                }
+            });
+
+            // Update the product to disconnect this customization
+            await tx.product.update({
+                where: {
+                    id: deletedCustomization.productId,
+                },
+                data: {
+                    Customizations: {
+                        disconnect: {
+                            id: id,
+                        }
                     }
                 }
-            }
-        })
-        return customization;
+            });
+
+            return deletedCustomization;
+        });
+    }
+
+    async getProductsWithCustomizations() {
+        try {
+            // First get all products
+            const products = await prisma.getClient().product.findMany({
+                include: {
+                    Customizations: true, // Include the customizations relation
+                },
+            });
+
+            // Filter to only include products that have at least one customization
+            const productsWithCustomizations = products.filter(
+                (product) => product.Customizations && product.Customizations.length > 0
+            );
+
+            return productsWithCustomizations;
+        } catch (error) {
+            throw error;
+        }
     }
 }
 

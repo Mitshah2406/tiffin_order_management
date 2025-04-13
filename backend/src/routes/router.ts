@@ -10,7 +10,7 @@ const router: Router = express.Router();
 
 
 router.get("/health", (req, res) => {
-    res.status(200).json({ message: "OK" });
+    res.status(200).json({ message: "Health check" });
 })
 
 router.use("/api",

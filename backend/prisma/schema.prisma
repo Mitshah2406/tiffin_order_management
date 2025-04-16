@@ -18,6 +18,15 @@ enum Timing {
   EVENING
 }
 
+model Admin {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  name      String
+  email     String   @unique
+  password  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 model Customer {
   id           String   @id @default(auto()) @map("_id") @db.ObjectId
   name         String
@@ -34,12 +43,26 @@ model Product {
   Item           Item[]
 }
 
+model Item {
+  id              String          @id @default(auto()) @map("_id") @db.ObjectId
+  productId       String          @db.ObjectId
+  product         Product?        @relation(fields: [productId], references: [id])
+  quantity        Int
+  customizationId String?         @db.ObjectId
+  customization   Customizations? @relation(fields: [customizationId], references: [id])
+  orderId         String          @db.ObjectId
+  order           Order?          @relation(fields: [orderId], references: [id])
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+}
+
 model Customizations {
   id          String   @id @default(auto()) @map("_id") @db.ObjectId
   description String
   price       Float
   productId   String   @db.ObjectId
   product     Product? @relation(fields: [productId], references: [id])
+  items       Item[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
@@ -62,14 +85,14 @@ model Order {
   createdAt   DateTime    @default(now())
 }
 
-model Item {
-  id              String   @id @default(auto()) @map("_id") @db.ObjectId
-  productId       String   @db.ObjectId
-  product         Product? @relation(fields: [productId], references: [id])
-  quantity        Int
-  customizationId String?  @db.ObjectId
-  orderId         String   @db.ObjectId
-  order           Order?   @relation(fields: [orderId], references: [id])
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-}
+// model Item {
+//   id              String   @id @default(auto()) @map("_id") @db.ObjectId
+//   productId       String   @db.ObjectId
+//   product         Product? @relation(fields: [productId], references: [id])
+//   quantity        Int
+//   customizationId String?  @db.ObjectId
+//   orderId         String   @db.ObjectId
+//   order           Order?   @relation(fields: [orderId], references: [id])
+//   createdAt       DateTime @default(now())
+//   updatedAt       DateTime @updatedAt
+// }

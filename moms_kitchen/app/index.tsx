@@ -9,7 +9,17 @@ import CustomerDetailsScreen from "./Customers/customerDetails";
 import AddOrder from "./addOrder";
 import CustomerTransactionsScreen from "./Payments/pendingPayments";
 
+// Admin Screens
+import AdminDashboardScreen from "./Admin/adminDashboard";
+import AdminCustomersScreen from "./Admin/adminCustomer";
+import AdminEditCustomerScreen from "./Admin/adminEditCustomer";
+import AdminCustomerDetailsScreen from "./Admin/adminCustomerDetails";
+import AdminOrdersScreen from "./Admin/adminOrders";
+import AdminEditOrderScreen from "./Admin/adminEditOrder";
+import AdminPendingPaymentsScreen from "./Admin/adminPendingPayment";
+
 import { LogBox } from "react-native";
+import AdminLogin from "./Admin/login";
 
 // Ignore all log notifications (both warnings and errors)
 LogBox.ignoreAllLogs();
@@ -23,7 +33,12 @@ const Stack = createStackNavigator();
 
 export default function Index() {
   return (
-    <Stack.Navigator initialRouteName="Dashboard">
+    <Stack.Navigator initialRouteName="adminlogin">
+      <Stack.Screen
+        name="adminlogin"
+        component={AdminLogin}
+        options={{ headerShown: false }}
+      />
       <Stack.Screen
         name="Dashboard"
         component={Dashboard}
@@ -62,6 +77,43 @@ export default function Index() {
       <Stack.Screen
         name="pendingPayments"
         component={CustomerTransactionsScreen}
+        options={{ headerShown: false }}
+      />
+
+      {/* Admin Screens */}
+      <Stack.Screen
+        name="adminDashboard"
+        component={AdminDashboardScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="adminCustomers"
+        component={AdminCustomersScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="editCustomer"
+        component={AdminEditCustomerScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="adminCustomerDetails"
+        component={AdminCustomerDetailsScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="adminOrders"
+        component={AdminOrdersScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="editOrder"
+        component={AdminEditOrderScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="adminPendingPayments"
+        component={AdminPendingPaymentsScreen}
         options={{ headerShown: false }}
       />
     </Stack.Navigator>

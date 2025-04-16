@@ -17,7 +17,7 @@ import {
   markAllCustomerPaymentsAsPaid,
   markMonthPaymentAsPaid,
   markMonthPaymentAsUnpaid,
-} from "@/services/api";
+} from "@/services/momsApi";
 import LoadingButton from "@/components/loadingBtn";
 
 // Define pending month type

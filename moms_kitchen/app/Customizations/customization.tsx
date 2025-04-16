@@ -20,7 +20,7 @@ import {
   deleteCustomization,
   getAllCustomizations,
   getAllProducts,
-} from "@/services/api";
+} from "@/services/momsApi";
 import LoadingButton from "@/components/loadingBtn";
 import { useFocusEffect } from "expo-router";
 import Indicator from "@/components/indicator";

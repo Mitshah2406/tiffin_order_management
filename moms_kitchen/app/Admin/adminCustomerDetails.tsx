@@ -8,6 +8,7 @@ import {
   SafeAreaView,
   ToastAndroid,
   ActivityIndicator,
+  Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Order, OrderItem } from "@/interfaces/interface";
@@ -16,7 +17,8 @@ import {
   markOrderAsPaid,
   markOrderAsUnpaid,
   markMultipleOrdersAsPaid,
-} from "@/services/momsApi";
+} from "../../services/momsApi";
+import { deleteOrderAdmin } from "../../services/adminsApi";
 import LoadingButton from "@/components/loadingBtn";
 
 // Custom Dropdown Component
@@ -81,7 +83,7 @@ const Dropdown = ({
   );
 };
 
-const CustomerDetailsScreen = ({ navigation, route }: any) => {
+const AdminCustomerDetailsScreen = ({ navigation, route }: any) => {
   // Get customer from route params
   const { customer } = route.params;
 
@@ -102,6 +104,7 @@ const CustomerDetailsScreen = ({ navigation, route }: any) => {
   const [unpaidAmount, setUnpaidAmount] = useState<number>(0);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isMarkingPaid, setIsMarkingPaid] = useState<boolean>(false);
+  const [isDeleting, setIsDeleting] = useState<boolean>(false);
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
 
   // Month names for display
@@ -326,6 +329,65 @@ const CustomerDetailsScreen = ({ navigation, route }: any) => {
     }
   };
 
+  // Handle deleting an order
+  const handleDeleteOrder = async (orderId: string) => {
+    Alert.alert(
+      "Confirm Delete",
+      "Are you sure you want to delete this order? This action cannot be undone.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              setIsDeleting(true);
+
+              const response = await deleteOrderAdmin(orderId);
+
+              if (response.success) {
+                ToastAndroid.showWithGravityAndOffset(
+                  response.message || "Order deleted successfully",
+                  ToastAndroid.LONG,
+                  ToastAndroid.BOTTOM,
+                  25,
+                  50
+                );
+
+                // Refresh the order list
+                await fetchCustomerOrders();
+              } else {
+                ToastAndroid.showWithGravityAndOffset(
+                  response.message || "Failed to delete order",
+                  ToastAndroid.LONG,
+                  ToastAndroid.BOTTOM,
+                  25,
+                  50
+                );
+              }
+            } catch (error) {
+              console.error("Error deleting order:", error);
+              ToastAndroid.showWithGravityAndOffset(
+                "Error deleting order",
+                ToastAndroid.LONG,
+                ToastAndroid.BOTTOM,
+                25,
+                50
+              );
+            } finally {
+              setIsDeleting(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  // Handle editing an order
+  const handleEditOrder = (order: Order) => {
+    navigation.navigate("editOrder", { order });
+  };
+
   // Apply date filter
   const handleApplyDateFilter = () => {
     setIsDatePickerVisible(false);
@@ -395,11 +457,28 @@ const CustomerDetailsScreen = ({ navigation, route }: any) => {
           {renderOrderItems(item.Item)}
         </View>
 
-        <View className="flex-row justify-between">
+        <View className="flex-row justify-between mb-3">
           <Text className="text-text-primary font-medium">Total</Text>
           <Text className="text-primary font-bold text-lg">
             ₹{item.orderAmount.toFixed(2)}
           </Text>
+        </View>
+
+        {/* Admin Action Buttons */}
+        <View className="flex-row justify-between">
+          <Pressable
+            className="flex-1 bg-amber-500 rounded-lg py-2 mr-2"
+            onPress={() => handleEditOrder(item)}
+          >
+            <Text className="text-white font-medium text-center">Edit</Text>
+          </Pressable>
+          <Pressable
+            className="flex-1 bg-red-500 rounded-lg py-2"
+            onPress={() => handleDeleteOrder(item.id)}
+            disabled={isDeleting}
+          >
+            <Text className="text-white font-medium text-center">Delete</Text>
+          </Pressable>
         </View>
       </View>
     );
@@ -518,6 +597,19 @@ const CustomerDetailsScreen = ({ navigation, route }: any) => {
                     </Text>
                   </View>
                 </View>
+              </View>
+
+              <View className="flex-row mt-3">
+                <Pressable
+                  className="flex-1 bg-amber-500 rounded-lg py-2 mr-2"
+                  onPress={() =>
+                    navigation.navigate("editCustomer", { customer })
+                  }
+                >
+                  <Text className="text-white font-medium text-center">
+                    Edit Customer
+                  </Text>
+                </Pressable>
               </View>
             </View>
           </View>
@@ -674,4 +766,4 @@ const CustomerDetailsScreen = ({ navigation, route }: any) => {
   );
 };
 
-export default CustomerDetailsScreen;
+export default AdminCustomerDetailsScreen;

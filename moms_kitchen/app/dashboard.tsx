@@ -15,7 +15,7 @@ import Helper from "@/utils/helpers";
 import {
   getDashboardStats,
   getCustomersWithPendingPayments,
-} from "@/services/api";
+} from "@/services/momsApi";
 
 // Define types for our service items
 interface ServiceItem {
@@ -49,6 +49,7 @@ interface DashboardStats {
     products: number;
     customizations: number;
     customers: number;
+    orders: number;
   };
   financial: {
     earnedAmount: number;
@@ -64,6 +65,7 @@ const Dashboard = ({ navigation, route }: any) => {
       products: 0,
       customizations: 0,
       customers: 0,
+      orders: 0,
     },
     financial: {
       earnedAmount: 0,
@@ -320,7 +322,7 @@ const Dashboard = ({ navigation, route }: any) => {
           {renderServiceGrid()}
 
           {/* Summary Grid */}
-          <View className="flex-row gap-4 mb-4">
+          {/* <View className="flex-row gap-4 mb-4">
             <View className="flex-1 bg-white rounded-xl p-5 shadow-lg border border-accent">
               <View className="w-12 h-12 bg-lightError rounded-full items-center justify-center mb-3">
                 <Ionicons name="wallet-outline" size={22} color="#FF4D4F" />
@@ -348,7 +350,7 @@ const Dashboard = ({ navigation, route }: any) => {
                 {Helper.formatRupees(dashboardStats.financial.earnedAmount)}
               </Text>
             </View>
-          </View>
+          </View> */}
 
           {/* Pending Payments Section */}
           <View>

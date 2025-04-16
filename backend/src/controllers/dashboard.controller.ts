@@ -1,5 +1,3 @@
-// controllers/dashboard.controller.ts
-
 import { Request, Response } from "express";
 import JsonResponse from "../helpers/json.response";
 import { Dashboard } from "../models/dashboard.model";

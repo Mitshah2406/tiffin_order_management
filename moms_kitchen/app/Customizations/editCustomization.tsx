@@ -14,7 +14,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { Customization, NodeResponse, Product } from "@/interfaces/interface";
 import useFetch from "@/hooks/useFetch";
-import { getAllProducts, updateCustomization } from "@/services/api";
+import { getAllProducts, updateCustomization } from "@/services/momsApi";
 import LoadingButton from "@/components/loadingBtn";
 
 // Sample products (for dropdown)

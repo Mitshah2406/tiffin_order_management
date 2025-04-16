@@ -19,7 +19,7 @@ import {
   deleteProduct,
   editProduct,
   getAllProducts,
-} from "@/services/api";
+} from "@/services/momsApi";
 import useFetch from "@/hooks/useFetch";
 import LoadingButton from "@/components/loadingBtn";
 import Indicator from "@/components/indicator";

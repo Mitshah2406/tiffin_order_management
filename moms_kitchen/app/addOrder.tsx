@@ -25,7 +25,7 @@ import {
   getAllProducts,
   createOrder,
   getAllProductsWithCustomizations,
-} from "@/services/api";
+} from "@/services/momsApi";
 import LoadingButton from "@/components/loadingBtn"; // Import the LoadingButton component
 
 // Define interfaces

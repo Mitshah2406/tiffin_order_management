@@ -3,6 +3,7 @@ import customerRouter from "./customer.router";
 import productRouter from "./product.router";
 import customizationsRouter from "./customizations.router";
 import dashboardRoutes from "./dashboard.router";
+import adminRoutes from "./admin.router";
 
 import orderRouter from "./order.router";
 const router: Router = express.Router();
@@ -18,6 +19,7 @@ router.use("/api",
     router.use("/product", productRouter),
     router.use("/customizations", customizationsRouter),
     router.use("/order", orderRouter),
-    router.use("/dashboard", dashboardRoutes)
+    router.use("/dashboard", dashboardRoutes),
+    router.use("/admin", adminRoutes)
 );
 export default router;

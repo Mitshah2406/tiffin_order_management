@@ -1,5 +1,6 @@
 // models/dashboard.model.ts
 
+import { Customer } from "@prisma/client";
 import prisma from "../config/prisma";
 
 interface Order {
@@ -28,6 +29,7 @@ interface CustomerData {
     name: string;
     pendingMonths: MonthEntry[];
     totalAmount: number;
+    customer: Customer;
 }
 
 interface MonthData {
@@ -43,10 +45,12 @@ interface DashboardStats {
         products: number;
         customizations: number;
         customers: number;
+        orders: number,
     };
     financial: {
         earnedAmount: number;
         pendingAmount: number;
+        unpaidAmount: number,
     };
 }
 
@@ -105,15 +109,27 @@ export class Dashboard {
 
         const pendingAmount = unpaidOrders.reduce((sum: number, order: Order) => sum + order.orderAmount, 0);
 
+        const countOrders = await prismaClient.order.count({});
+
+        const allUnpaidOrders = await prismaClient.order.findMany({
+            where: {
+                orderStatus: "UNPAID",
+            }
+        }) as Order[];
+
+        const unpaidAmount = allUnpaidOrders.reduce((sum: number, order: Order) => sum + order.orderAmount, 0);
+
         return {
             counts: {
                 products: productCount,
                 customizations: customizationCount,
                 customers: customerCount,
+                orders: countOrders,
             },
             financial: {
                 earnedAmount,
                 pendingAmount,
+                unpaidAmount,
             }
         };
     }
@@ -165,7 +181,8 @@ export class Dashboard {
                     id: customerId,
                     name: customer.name,
                     pendingMonths: [],
-                    totalAmount: 0
+                    totalAmount: 0,
+                    customer: customer,
                 });
             }
 
@@ -187,6 +204,12 @@ export class Dashboard {
             monthEntry.amount += order.orderAmount;
             customerData.totalAmount += order.orderAmount;
         });
+
+        console.log("Customer Map");
+
+
+        console.log("Customer Map:", customerMap);
+
 
         return Array.from(customerMap.values());
     }
